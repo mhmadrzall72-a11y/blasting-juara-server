@@ -5,7 +5,6 @@ import rateLimit from "express-rate-limit";
 import QRCode from "qrcode";
 import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-
 import makeWASocket, {
   BufferJSON,
   initAuthCreds,
@@ -18,41 +17,36 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: "1mb" }));
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SESSION_ENCRYPTION_KEY =
-  process.env.SESSION_ENCRYPTION_KEY || "";
+const {
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  SESSION_ENCRYPTION_KEY
+} = process.env;
 
 const sockets = new Map();
 const liveState = new Map();
 const startLocks = new Map();
+const reconnectTimers = new Map();
+const manualDisconnect = new Set();
 
 function getAdmin() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY)
     throw new Error("Konfigurasi Supabase belum lengkap.");
-  }
 
-  if (!/^[a-fA-F0-9]{64}$/.test(SESSION_ENCRYPTION_KEY)) {
+  if (!/^[a-fA-F0-9]{64}$/.test(SESSION_ENCRYPTION_KEY || ""))
     throw new Error("SESSION_ENCRYPTION_KEY harus 64 karakter hex.");
-  }
 
-  return createClient(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false
-      }
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
     }
-  );
+  });
 }
 
 function encryptJson(value) {
   const key = Buffer.from(SESSION_ENCRYPTION_KEY, "hex");
   const iv = crypto.randomBytes(12);
-
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
 
   const plain = Buffer.from(
@@ -74,15 +68,12 @@ function encryptJson(value) {
 }
 
 function decryptJson(record) {
-  if (!record || record.encrypted !== true) {
+  if (!record || record.encrypted !== true)
     throw new Error("Data sesi tidak valid.");
-  }
-
-  const key = Buffer.from(SESSION_ENCRYPTION_KEY, "hex");
 
   const decipher = crypto.createDecipheriv(
     "aes-256-gcm",
-    key,
+    Buffer.from(SESSION_ENCRYPTION_KEY, "hex"),
     Buffer.from(record.iv, "hex")
   );
 
@@ -103,50 +94,22 @@ async function requireUser(req, res, next) {
       ? header.slice(7)
       : "";
 
-    if (!token) {
-      return res.status(401).json({
-        error: "Token login tidak ditemukan."
-      });
-    }
+    if (!token)
+      return res.status(401).json({ error: "Token login tidak ditemukan." });
 
     const admin = getAdmin();
+    const { data, error } = await admin.auth.getUser(token);
 
-    const { data, error } =
-      await admin.auth.getUser(token);
-
-    if (error || !data?.user) {
-      return res.status(401).json({
-        error: "Sesi login tidak valid."
-      });
-    }
+    if (error || !data?.user)
+      return res.status(401).json({ error: "Sesi login tidak valid." });
 
     req.user = data.user;
     req.admin = admin;
-
     next();
-
   } catch (error) {
-    console.error("Auth error:", error.message);
-
-    res.status(503).json({
-      error: "Layanan autentikasi tidak tersedia."
-    });
+    console.error("Auth:", error.message);
+    res.status(503).json({ error: "Layanan autentikasi tidak tersedia." });
   }
-}
-
-async function saveSessionRow(admin, userId, creds, status) {
-  const { error } = await admin
-    .from("whatsapp_sessions")
-    .upsert({
-      user_id: userId,
-      creds: encryptJson(creds),
-      status,
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: "user_id"
-    });
-
-  if (error) throw error;
 }
 
 async function createDatabaseAuthState(admin, userId) {
@@ -180,45 +143,50 @@ async function createDatabaseAuthState(admin, userId) {
       );
 
       const result = {};
-
       for (const id of ids) {
         const stored = found.get(id);
-
-        result[id] = stored
-          ? decryptJson(stored)
-          : null;
+        result[id] = stored ? decryptJson(stored) : null;
       }
-
       return result;
     },
 
     set: async data => {
       for (const [type, entries] of Object.entries(data)) {
+        const upserts = [];
+        const deletes = [];
+
         for (const [id, value] of Object.entries(entries || {})) {
           if (value === null || value === undefined) {
-            const { error } = await admin
-              .from("whatsapp_auth_keys")
-              .delete()
-              .eq("user_id", userId)
-              .eq("key_type", type)
-              .eq("key_id", id);
-
-            if (error) throw error;
-
+            deletes.push(id);
           } else {
-            const { error } = await admin
-              .from("whatsapp_auth_keys")
-              .upsert({
-                user_id: userId,
-                key_type: type,
-                key_id: id,
-                value: encryptJson(value)
-              }, {
-                onConflict: "user_id,key_type,key_id"
-              });
-
-            if (error) throw error;
+            upserts.push({
+              user_id: userId,
+              key_type: type,
+              key_id: id,
+              value: encryptJson(value)
+            });
           }
+        }
+
+        if (deletes.length) {
+          const { error } = await admin
+            .from("whatsapp_auth_keys")
+            .delete()
+            .eq("user_id", userId)
+            .eq("key_type", type)
+            .in("key_id", deletes);
+
+          if (error) throw error;
+        }
+
+        if (upserts.length) {
+          const { error } = await admin
+            .from("whatsapp_auth_keys")
+            .upsert(upserts, {
+              onConflict: "user_id,key_type,key_id"
+            });
+
+          if (error) throw error;
         }
       }
     }
@@ -226,7 +194,6 @@ async function createDatabaseAuthState(admin, userId) {
 
   return {
     state: { creds, keys },
-
     saveCreds: async () => {
       const { error } = await admin
         .from("whatsapp_sessions")
@@ -241,6 +208,21 @@ async function createDatabaseAuthState(admin, userId) {
   };
 }
 
+async function ensureSession(admin, userId, creds, status) {
+  const { error } = await admin
+    .from("whatsapp_sessions")
+    .upsert({
+      user_id: userId,
+      creds: encryptJson(creds),
+      status,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: "user_id"
+    });
+
+  if (error) throw error;
+}
+
 async function setStatus(admin, userId, status, phoneNumber = null) {
   const { error } = await admin
     .from("whatsapp_sessions")
@@ -251,30 +233,24 @@ async function setStatus(admin, userId, status, phoneNumber = null) {
     })
     .eq("user_id", userId);
 
-  if (error) {
-    console.error("Gagal menyimpan status:", error.message);
-  }
+  if (error) console.error("Status:", error.message);
+}
+
+function clearReconnect(userId) {
+  const timer = reconnectTimers.get(userId);
+  if (timer) clearTimeout(timer);
+  reconnectTimers.delete(userId);
 }
 
 async function startWhatsApp(userId, admin) {
-  if (sockets.has(userId)) {
-    return sockets.get(userId);
-  }
-
-  if (startLocks.has(userId)) {
-    return startLocks.get(userId);
-  }
+  if (sockets.has(userId)) return sockets.get(userId);
+  if (startLocks.has(userId)) return startLocks.get(userId);
 
   const task = (async () => {
     const { state, saveCreds } =
       await createDatabaseAuthState(admin, userId);
 
-    await saveSessionRow(
-      admin,
-      userId,
-      state.creds,
-      "connecting"
-    );
+    await ensureSession(admin, userId, state.creds, "connecting");
 
     liveState.set(userId, {
       status: "connecting",
@@ -287,7 +263,9 @@ async function startWhatsApp(userId, admin) {
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      browser: ["Blasting Juara", "Chrome", "1.0.0"]
+      browser: ["Blasting Juara", "Chrome", "1.0.0"],
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000
     });
 
     sockets.set(userId, sock);
@@ -296,7 +274,7 @@ async function startWhatsApp(userId, admin) {
       try {
         await saveCreds();
       } catch (error) {
-        console.error("Gagal menyimpan kredensial:", error.message);
+        console.error("Simpan kredensial:", error.message);
       }
     });
 
@@ -305,15 +283,16 @@ async function startWhatsApp(userId, admin) {
 
       if (update.qr) {
         liveState.set(userId, {
-          ...current,
           status: "waiting_qr",
-          qr: update.qr
+          qr: update.qr,
+          phoneNumber: null
         });
-
         await setStatus(admin, userId, "waiting_qr");
       }
 
       if (update.connection === "open") {
+        clearReconnect(userId);
+
         const phoneNumber = String(sock.user?.id || "")
           .split(":")[0]
           .split("@")[0] || null;
@@ -324,23 +303,15 @@ async function startWhatsApp(userId, admin) {
           phoneNumber
         });
 
-        await setStatus(
-          admin,
-          userId,
-          "connected",
-          phoneNumber
-        );
+        await setStatus(admin, userId, "connected", phoneNumber);
       }
 
       if (update.connection === "close") {
-        const code =
-          update.lastDisconnect?.error?.output?.statusCode;
-
-        const loggedOut = code === DisconnectReason.loggedOut;
-
-        if (sockets.get(userId) === sock) {
+        if (sockets.get(userId) === sock)
           sockets.delete(userId);
-        }
+
+        const code = update.lastDisconnect?.error?.output?.statusCode;
+        const loggedOut = code === DisconnectReason.loggedOut;
 
         liveState.set(userId, {
           status: "disconnected",
@@ -351,8 +322,9 @@ async function startWhatsApp(userId, admin) {
         await setStatus(admin, userId, "disconnected");
 
         if (loggedOut) {
-          await admin
-            .from("whatsapp_sessions")
+          clearReconnect(userId);
+
+          await admin.from("whatsapp_sessions")
             .update({
               creds: null,
               phone_number: null,
@@ -361,18 +333,27 @@ async function startWhatsApp(userId, admin) {
             })
             .eq("user_id", userId);
 
-          await admin
-            .from("whatsapp_auth_keys")
+          await admin.from("whatsapp_auth_keys")
             .delete()
             .eq("user_id", userId);
-        } else {
-          setTimeout(() => {
-            if (!sockets.has(userId)) {
+
+          return;
+        }
+
+        if (!manualDisconnect.has(userId)) {
+          clearReconnect(userId);
+
+          const timer = setTimeout(() => {
+            reconnectTimers.delete(userId);
+
+            if (!sockets.has(userId) && !manualDisconnect.has(userId)) {
               startWhatsApp(userId, admin).catch(error => {
-                console.error("Reconnect gagal:", error.message);
+                console.error("Reconnect:", error.message);
               });
             }
           }, 5000);
+
+          reconnectTimers.set(userId, timer);
         }
       }
     });
@@ -402,148 +383,130 @@ app.get("/health", (_req, res) => {
     whatsappConfigured: Boolean(
       SUPABASE_URL &&
       SUPABASE_SERVICE_ROLE_KEY &&
-      /^[a-fA-F0-9]{64}$/.test(SESSION_ENCRYPTION_KEY)
+      /^[a-fA-F0-9]{64}$/.test(SESSION_ENCRYPTION_KEY || "")
     )
   });
 });
 
 const connectLimiter = rateLimit({
-  windowMs: 60 * 1000,
+  windowMs: 60000,
   limit: 5,
   standardHeaders: "draft-7",
   legacyHeaders: false
 });
 
-app.post(
-  "/whatsapp/connect",
-  connectLimiter,
-  requireUser,
-  async (req, res) => {
-    try {
-      await startWhatsApp(req.user.id, req.admin);
+app.post("/whatsapp/connect", connectLimiter, requireUser, async (req, res) => {
+  try {
+    manualDisconnect.delete(req.user.id);
+    clearReconnect(req.user.id);
 
-      res.json({
-        success: true,
-        status: liveState.get(req.user.id)?.status || "connecting"
-      });
+    await startWhatsApp(req.user.id, req.admin);
 
-    } catch (error) {
-      console.error("Koneksi gagal:", error);
-
-      res.status(500).json({
-        error: "Gagal memulai koneksi WhatsApp."
-      });
-    }
+    res.json({
+      success: true,
+      status: liveState.get(req.user.id)?.status || "connecting"
+    });
+  } catch (error) {
+    console.error("Koneksi:", error);
+    res.status(500).json({ error: "Gagal memulai koneksi WhatsApp." });
   }
-);
+});
 
-app.get(
-  "/whatsapp/status",
-  requireUser,
-  async (req, res) => {
-    try {
-      const userId = req.user.id;
-      let state = liveState.get(userId);
+app.get("/whatsapp/status", requireUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    let state = liveState.get(userId);
 
-      if (!state) {
-        const { data, error } = await req.admin
-          .from("whatsapp_sessions")
-          .select("creds,status,phone_number")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (data?.creds) {
-          const savedCreds = decryptJson(data.creds);
-
-          if (savedCreds.registered) {
-            await startWhatsApp(userId, req.admin);
-            state = liveState.get(userId);
-          }
-        }
-      }
-
-      state = state || {
-        status: "disconnected",
-        qr: null,
-        phoneNumber: null
-      };
-
-      const qrImage = state.qr
-        ? await QRCode.toDataURL(state.qr, {
-            errorCorrectionLevel: "M",
-            margin: 2,
-            width: 320
-          })
-        : null;
-
-      res.json({
-        status: state.status,
-        phoneNumber: state.phoneNumber,
-        qr: qrImage
-      });
-
-    } catch (error) {
-      console.error("Gagal membaca status:", error);
-
-      res.status(500).json({
-        error: "Gagal membaca status WhatsApp."
-      });
-    }
-  }
-);
-
-app.post(
-  "/whatsapp/disconnect",
-  requireUser,
-  async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const sock = sockets.get(userId);
-
-      if (sock) {
-        sockets.delete(userId);
-
-        try {
-          await sock.logout();
-        } catch (error) {
-          console.error("Logout:", error.message);
-        }
-      }
-
-      liveState.set(userId, {
-        status: "disconnected",
-        qr: null,
-        phoneNumber: null
-      });
-
-      await req.admin
+    if (!state) {
+      const { data, error } = await req.admin
         .from("whatsapp_sessions")
-        .delete()
-        .eq("user_id", userId);
+        .select("creds,status,phone_number")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-      await req.admin
-        .from("whatsapp_auth_keys")
-        .delete()
-        .eq("user_id", userId);
+      if (error) throw error;
 
-      res.json({
-        success: true,
-        status: "disconnected"
-      });
+      if (data?.creds) {
+        const savedCreds = decryptJson(data.creds);
 
-    } catch (error) {
-      console.error("Gagal memutus koneksi:", error);
-
-      res.status(500).json({
-        error: "Gagal memutus koneksi WhatsApp."
-      });
+        if (savedCreds.registered) {
+          await startWhatsApp(userId, req.admin);
+          state = liveState.get(userId);
+        }
+      }
     }
+
+    state = state || {
+      status: "disconnected",
+      qr: null,
+      phoneNumber: null
+    };
+
+    const qrImage = state.qr
+      ? await QRCode.toDataURL(state.qr, {
+          errorCorrectionLevel: "M",
+          margin: 2,
+          width: 320
+        })
+      : null;
+
+    res.json({
+      status: state.status,
+      phoneNumber: state.phoneNumber,
+      qr: qrImage
+    });
+  } catch (error) {
+    console.error("Status:", error);
+    res.status(500).json({ error: "Gagal membaca status WhatsApp." });
   }
-);
+});
+
+app.post("/whatsapp/disconnect", requireUser, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    manualDisconnect.add(userId);
+    clearReconnect(userId);
+
+    const sock = sockets.get(userId);
+    sockets.delete(userId);
+
+    if (sock) {
+      try {
+        await sock.logout();
+      } catch (error) {
+        console.error("Logout:", error.message);
+      }
+    }
+
+    liveState.set(userId, {
+      status: "disconnected",
+      qr: null,
+      phoneNumber: null
+    });
+
+    const { error: sessionError } = await req.admin
+      .from("whatsapp_sessions")
+      .delete()
+      .eq("user_id", userId);
+
+    if (sessionError) throw sessionError;
+
+    const { error: keysError } = await req.admin
+      .from("whatsapp_auth_keys")
+      .delete()
+      .eq("user_id", userId);
+
+    if (keysError) throw keysError;
+
+    res.json({ success: true, status: "disconnected" });
+  } catch (error) {
+    console.error("Disconnect:", error);
+    res.status(500).json({ error: "Gagal memutus koneksi WhatsApp." });
+  }
+});
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Blasting Juara berjalan di port ${PORT}`);
 });
-  
+                    
