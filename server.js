@@ -1,3 +1,4 @@
+
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
@@ -94,20 +95,26 @@ async function requireUser(req, res, next) {
       : "";
 
     if (!token)
-      return res.status(401).json({ error: "Token login tidak ditemukan." });
+      return res.status(401).json({
+        error: "Token login tidak ditemukan."
+      });
 
     const admin = getAdmin();
     const { data, error } = await admin.auth.getUser(token);
 
     if (error || !data?.user)
-      return res.status(401).json({ error: "Sesi login tidak valid." });
+      return res.status(401).json({
+        error: "Sesi login tidak valid."
+      });
 
     req.user = data.user;
     req.admin = admin;
     next();
   } catch (error) {
     console.error("Auth:", error.message);
-    res.status(503).json({ error: "Layanan autentikasi tidak tersedia." });
+    res.status(503).json({
+      error: "Layanan autentikasi tidak tersedia."
+    });
   }
 }
 
@@ -142,10 +149,12 @@ async function createDatabaseAuthState(admin, userId) {
       );
 
       const result = {};
+
       for (const id of ids) {
         const stored = found.get(id);
         result[id] = stored ? decryptJson(stored) : null;
       }
+
       return result;
     },
 
@@ -193,6 +202,7 @@ async function createDatabaseAuthState(admin, userId) {
 
   return {
     state: { creds, keys },
+
     saveCreds: async () => {
       const { error } = await admin
         .from("whatsapp_sessions")
@@ -237,7 +247,9 @@ async function setStatus(admin, userId, status, phoneNumber = null) {
 
 function clearReconnect(userId) {
   const timer = reconnectTimers.get(userId);
+
   if (timer) clearTimeout(timer);
+
   reconnectTimers.delete(userId);
 }
 
@@ -254,6 +266,7 @@ async function startWhatsApp(userId, admin) {
     liveState.set(userId, {
       status: "connecting",
       qr: null,
+      pairingCode: null,
       phoneNumber: null
     });
 
@@ -278,14 +291,16 @@ async function startWhatsApp(userId, admin) {
     });
 
     sock.ev.on("connection.update", async update => {
-      const current = liveState.get(userId) || {};
+      if (sockets.get(userId) !== sock) return;
 
       if (update.qr) {
         liveState.set(userId, {
           status: "waiting_qr",
           qr: update.qr,
+          pairingCode: null,
           phoneNumber: null
         });
+
         await setStatus(admin, userId, "waiting_qr");
       }
 
@@ -299,6 +314,7 @@ async function startWhatsApp(userId, admin) {
         liveState.set(userId, {
           status: "connected",
           qr: null,
+          pairingCode: null,
           phoneNumber
         });
 
@@ -315,6 +331,7 @@ async function startWhatsApp(userId, admin) {
         liveState.set(userId, {
           status: "disconnected",
           qr: null,
+          pairingCode: null,
           phoneNumber: null
         });
 
@@ -394,23 +411,83 @@ const connectLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// KONEKSI QR
 app.post("/whatsapp/connect", connectLimiter, requireUser, async (req, res) => {
   try {
     manualDisconnect.delete(req.user.id);
     clearReconnect(req.user.id);
 
-    await startWhatsApp(req.user.id, req.admin);
+    const sock = await startWhatsApp(req.user.id, req.admin);
 
     res.json({
       success: true,
       status: liveState.get(req.user.id)?.status || "connecting"
     });
   } catch (error) {
-    console.error("Koneksi:", error);
-    res.status(500).json({ error: "Gagal memulai koneksi WhatsApp." });
+    console.error("Koneksi QR:", error);
+    res.status(500).json({
+      error: "Gagal memulai koneksi WhatsApp."
+    });
   }
 });
 
+// KONEKSI PAIRING CODE
+app.post("/whatsapp/pair", connectLimiter, requireUser, async (req, res) => {
+  try {
+    let phoneNumber = String(req.body.phoneNumber || "")
+      .replace(/\D/g, "");
+
+    // Ubah 08xxxxxxxx menjadi 628xxxxxxxx
+    if (phoneNumber.startsWith("0")) {
+      phoneNumber = "62" + phoneNumber.slice(1);
+    }
+
+    if (!/^[1-9]\d{9,14}$/.test(phoneNumber)) {
+      return res.status(400).json({
+        error: "Nomor tidak valid. Gunakan kode negara, contoh 628123456789."
+      });
+    }
+
+    const userId = req.user.id;
+
+    manualDisconnect.delete(userId);
+    clearReconnect(userId);
+
+    const sock = await startWhatsApp(userId, req.admin);
+
+    if (sock.user) {
+      return res.status(409).json({
+        error: "WhatsApp sudah terhubung. Putuskan koneksi dahulu jika ingin mengganti nomor."
+      });
+    }
+
+    const pairingCode = await sock.requestPairingCode(phoneNumber);
+
+    liveState.set(userId, {
+      status: "waiting_pairing",
+      qr: null,
+      pairingCode,
+      phoneNumber
+    });
+
+    await setStatus(req.admin, userId, "waiting_pairing");
+
+    res.json({
+      success: true,
+      status: "waiting_pairing",
+      phoneNumber,
+      pairingCode
+    });
+  } catch (error) {
+    console.error("Pairing Code:", error);
+
+    res.status(500).json({
+      error: error.message || "Gagal membuat Pairing Code."
+    });
+  }
+});
+
+// STATUS WHATSAPP
 app.get("/whatsapp/status", requireUser, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -438,6 +515,7 @@ app.get("/whatsapp/status", requireUser, async (req, res) => {
     state = state || {
       status: "disconnected",
       qr: null,
+      pairingCode: null,
       phoneNumber: null
     };
 
@@ -452,14 +530,19 @@ app.get("/whatsapp/status", requireUser, async (req, res) => {
     res.json({
       status: state.status,
       phoneNumber: state.phoneNumber,
+      pairingCode: state.pairingCode,
       qr: qrImage
     });
   } catch (error) {
     console.error("Status:", error);
-    res.status(500).json({ error: "Gagal membaca status WhatsApp." });
+
+    res.status(500).json({
+      error: "Gagal membaca status WhatsApp."
+    });
   }
 });
 
+// PUTUSKAN WHATSAPP
 app.post("/whatsapp/disconnect", requireUser, async (req, res) => {
   const userId = req.user.id;
 
@@ -481,6 +564,7 @@ app.post("/whatsapp/disconnect", requireUser, async (req, res) => {
     liveState.set(userId, {
       status: "disconnected",
       qr: null,
+      pairingCode: null,
       phoneNumber: null
     });
 
@@ -498,14 +582,20 @@ app.post("/whatsapp/disconnect", requireUser, async (req, res) => {
 
     if (keysError) throw keysError;
 
-    res.json({ success: true, status: "disconnected" });
+    res.json({
+      success: true,
+      status: "disconnected"
+    });
   } catch (error) {
     console.error("Disconnect:", error);
-    res.status(500).json({ error: "Gagal memutus koneksi WhatsApp." });
+
+    res.status(500).json({
+      error: "Gagal memutus koneksi WhatsApp."
+    });
   }
 });
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Blasting Juara berjalan di port ${PORT}`);
 });
-                    
+                                                 
