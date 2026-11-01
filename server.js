@@ -1,4 +1,8 @@
+const app = express();
 
+app.set("trust proxy", 1);
+
+const PORT = process.env.PORT || 8000;
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
@@ -11,11 +15,6 @@ import makeWASocket, {
   DisconnectReason
 } from "@whiskeysockets/baileys";
 
-const app = express();
-
-app.set("trust proxy", 1);
-
-const PORT = process.env.PORT || 3000;
 
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: "1mb" }));
