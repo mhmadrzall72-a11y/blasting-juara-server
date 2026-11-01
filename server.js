@@ -1,8 +1,6 @@
-const app = express();
+import WebSocket from "ws";
 
-app.set("trust proxy", 1);
-
-const PORT = process.env.PORT || 8000;
+globalThis.WebSocket = WebSocket;
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
@@ -14,6 +12,11 @@ import makeWASocket, {
   initAuthCreds,
   DisconnectReason
 } from "@whiskeysockets/baileys";
+const app = express();
+
+app.set("trust proxy", 1);
+
+const PORT = process.env.PORT || 8000;
 
 
 app.use(cors({ origin: true }));
