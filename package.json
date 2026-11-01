@@ -1,13 +1,23 @@
+
 {
   "name": "blasting-juara-server",
-  "version": "1.0.0",
-  "description": "WhatsApp connection service for Blasting Juara",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Blasting Juara WhatsApp QR Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
+    "@whiskeysockets/baileys": "6.7.18",
+    "@supabase/supabase-js": "^2.49.0",
+    "cors": "^2.8.5",
     "express": "^4.21.2",
-    "cors": "^2.8.5"
+    "express-rate-limit": "^7.5.0",
+    "qrcode": "^1.5.4"
   }
 }
