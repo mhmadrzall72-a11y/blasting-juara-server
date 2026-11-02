@@ -501,11 +501,18 @@ const $ = id => document.getElementById(id);
 // FUNGSI UMUM
 // =========================
 
+let notifyTimeout = null;
 function notify(message) {
  const box = $("message");
+ if (!box) return;
+ if (notifyTimeout) clearTimeout(notifyTimeout);
  box.textContent = message;
  box.classList.remove("hidden");
- // Toast tidak mengubah posisi scroll halaman.
+ // Notifikasi hanya tampil sementara dan tidak mengubah posisi scroll.
+ notifyTimeout = setTimeout(() => {
+  box.classList.add("hidden");
+  notifyTimeout = null;
+ }, 3500);
 }
 
 function escapeHTML(value) {
