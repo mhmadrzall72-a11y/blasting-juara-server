@@ -94,6 +94,59 @@ a{color:#f3c45b;overflow-wrap:anywhere}
  .money{font-size:22px}
  .pairing-code{font-size:25px}
 }
+
+/* ===== BLASTING JUARA: REDESAIN DASHBOARD ===== */
+:root{color-scheme:dark;--bj-bg:#07111f;--bj-panel:#101f33;--bj-panel2:#142943;--bj-line:#263d59;--bj-text:#edf4fc;--bj-muted:#9db0c7;--bj-accent:#38d99b;--bj-gold:#f3c45b}
+body{background:radial-gradient(ellipse at 85% 0%,#17334b 0%,#091727 38%,#060e19 100%);color:var(--bj-text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+header{position:sticky;top:0;z-index:30;background:rgba(8,20,35,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(123,158,194,.18);padding:15px max(18px,calc((100vw - 1440px)/2));min-height:68px}
+.logo{color:#fff;font-size:18px;letter-spacing:.5px}.logo:before{content:"✦";display:inline-grid;place-items:center;width:30px;height:30px;margin-right:9px;border-radius:10px;background:linear-gradient(135deg,#20b77b,#087b64);color:white}
+#userLabel{font-size:12px;color:#b6c8dc;background:#142943;border:1px solid #2a4563;border-radius:30px;padding:8px 13px}
+main{max-width:1440px;margin:auto;padding:24px clamp(12px,2vw,28px)}
+.box,.card{background:linear-gradient(145deg,rgba(19,39,62,.97),rgba(12,27,45,.97));border:1px solid rgba(116,151,187,.19);border-radius:17px;padding:20px;margin:0;box-shadow:0 12px 34px rgba(0,0,0,.13)}
+h1,h2,h3{color:#f4f8ff;letter-spacing:-.025em}h1{font-size:clamp(25px,3vw,34px)}h2{font-size:22px}h3{font-size:16px}p{color:var(--bj-muted)}
+button{background:linear-gradient(135deg,#39d99a,#1dbb83);color:#052219;border-radius:10px;padding:11px 15px;font-weight:750;transition:transform .15s,filter .15s;box-shadow:0 5px 14px rgba(25,184,127,.12)}button:hover{filter:brightness(1.06);transform:translateY(-1px)}button.secondary{background:#142943;border:1px solid #355473;color:#dce9f7;box-shadow:none}button.danger{background:#a93649;color:#fff}button.success{background:#16885c;color:#fff}
+input,textarea,select{background:#091827;border:1px solid #304a67;border-radius:10px;padding:13px;color:#f4f8ff}input:focus,textarea:focus,select:focus{outline:2px solid rgba(56,217,155,.32);border-color:#38d99b}
+#dashboard{display:grid;grid-template-columns:238px minmax(0,1fr);gap:18px;align-items:start}
+#dashboard>.box:first-child{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:23px 25px;background:linear-gradient(110deg,#123b42,#142b46 55%,#1a3150);border-color:rgba(74,211,163,.25);position:relative;overflow:hidden}
+#dashboard>.box:first-child:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:12%;top:-145px;background:rgba(58,217,155,.12);pointer-events:none}
+#dashboard>.box:first-child h2{margin:0 0 7px}#dashboard>.box:first-child p{margin:0}
+#dashboard>.box:first-child .grid{display:flex;gap:10px;min-width:min(48%,520px)}#dashboard>.box:first-child .card{flex:1;min-width:120px;padding:14px;background:rgba(5,18,31,.36);border-color:rgba(176,210,235,.13);margin:0}#dashboard>.box:first-child .money{font-size:22px;color:#fff}
+#dashboard>nav{grid-column:1;grid-row:2;position:sticky;top:88px;display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:12px;background:rgba(13,29,48,.92);border:1px solid rgba(116,151,187,.18);border-radius:17px}
+#dashboard>nav button{width:100%;text-align:left;flex:none;margin:0;background:transparent;color:#b7c8db;border:1px solid transparent;box-shadow:none;padding:12px 13px;font-size:13px}#dashboard>nav button:hover,#dashboard>nav button.active{background:linear-gradient(90deg,rgba(44,191,137,.19),rgba(44,191,137,.04));border-color:rgba(56,217,155,.22);color:#64e5b2;transform:none}
+#dashboard>.tab{grid-column:2;grid-row:2;min-width:0;animation:bjFade .18s ease}#dashboard>.tab.hidden{display:none!important}
+@keyframes bjFade{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.grid{gap:13px}.card{margin:0}.status{background:#183b3a;color:#68e5b3}
+.wa-box{text-align:left}.wa-box>h2,.wa-box>p{text-align:left}.wa-status{background:#0a1929;border:1px solid #29435e;border-radius:13px;padding:15px}.wa-methods{max-width:520px}.wa-methods button{padding:13px}.wa-method-active{background:linear-gradient(135deg,#f3c45b,#e8a938)!important;color:#171b21!important}
+/* Reserve space for QR and pairing output: new output does not push the page around. */
+#waQrPanel{min-height:410px;overflow-anchor:none;contain:layout paint}#waQrArea{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}#waQrArea.hidden{display:flex!important;visibility:hidden;pointer-events:none}#waQrImage{width:280px;height:280px;min-height:280px;object-fit:contain}#waQrArea small{margin-top:8px}
+#waPairPanel{min-height:420px;overflow-anchor:none;contain:layout paint}#waPairCodeArea{min-height:190px}#waPairCodeArea.hidden{display:block!important;visibility:hidden;pointer-events:none}
+.wa-box #waDisconnectedArea{max-width:720px}.pairing-code{background:#081827;border-color:#d6a83f;color:#f5cf73}
+.spin-panel{text-align:left}.spin-panel>h2,.spin-panel>p{text-align:center}.spin-code-row{max-width:480px;text-align:left;background:#0b1a2b;border:1px solid #29435e;border-radius:15px;padding:18px}.spin-wheel-wrap{margin:26px auto}.spin-result{background:#0b1a2b}
+.transaction-item,.spin-result{border-radius:13px;background:#0b1a2b}
+#message{position:fixed;z-index:1000;top:auto;bottom:18px;left:50%;transform:translateX(-50%);width:min(calc(100% - 28px),520px);margin:0;background:#173b3b;border:1px solid #38d99b;color:#effff8;box-shadow:0 12px 35px rgba(0,0,0,.35)}
+.confirm-box{background:#10243b;border-color:#355473}
+@media(max-width:760px){main{padding:12px 10px}#dashboard{display:flex;flex-direction:column;gap:12px}#dashboard>.box:first-child{width:100%;display:block;padding:18px}#dashboard>.box:first-child .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;margin-top:15px}#dashboard>.box:first-child .card{min-width:0}#dashboard>nav{position:sticky;top:67px;z-index:20;width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px;backdrop-filter:blur(14px)}#dashboard>nav button{font-size:12px;padding:10px 9px;text-align:center}#dashboard>.tab{width:100%}header{padding:12px}#waQrPanel{min-height:400px}#waPairPanel{min-height:410px}}
+@media(max-width:420px){#dashboard>nav{grid-template-columns:repeat(2,minmax(0,1fr))}#dashboard>.box:first-child .money{font-size:19px}.box,.card{padding:15px}.wa-methods{gap:7px}.wa-methods button{font-size:11px;padding:11px 7px}}
+
+
+/* ===== ROYAL PURPLE & SILVER EDITION ===== */
+:root{--bj-bg:#171321;--bj-panel:#241d32;--bj-panel2:#302640;--bj-line:#51465f;--bj-text:#f3eff7;--bj-muted:#bdb4c9;--bj-accent:#c2a1e8;--bj-gold:#c2a1e8}
+body{background:radial-gradient(ellipse at 78% -12%,rgba(164,126,205,.18),transparent 38%),linear-gradient(145deg,#15111f,#211a2d 55%,#171321);color:#f3eff7;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.005em}
+header{background:rgba(23,19,33,.96);border-bottom:1px solid rgba(194,161,232,.22);box-shadow:0 8px 30px rgba(0,0,0,.22)}
+.logo{letter-spacing:1.3px;font-size:15px;font-weight:800}.logo:before{background:linear-gradient(145deg,#e7d8f5,#9b78c0);color:#241b31;box-shadow:0 4px 16px rgba(194,161,232,.2)}
+#userLabel{background:#30263d;border-color:#574968;color:#eee7f5}
+.box,.card{background:linear-gradient(150deg,rgba(42,33,56,.98),rgba(31,25,43,.98));border:1px solid rgba(194,161,232,.17);border-radius:16px;box-shadow:0 16px 42px rgba(0,0,0,.22)}
+h1,h2,h3{color:#f4eff8;letter-spacing:-.035em}p{color:#c0b6cd}
+button{background:linear-gradient(135deg,#d7c1ed,#a987ce);color:#241b31;border-radius:9px;box-shadow:0 5px 16px rgba(0,0,0,.17);font-weight:700;letter-spacing:.015em}button:hover{filter:brightness(1.08);transform:translateY(-1px)}button.secondary{background:#332941;border:1px solid #625372;color:#eee8f4;box-shadow:none}button.success{background:#527d69;color:#f4f4ed}button.danger{background:#914f66;color:#fff}
+input,textarea,select{background:#1b1626;border:1px solid #554766;color:#f4eff8;border-radius:9px}input:focus,textarea:focus,select:focus{outline:2px solid rgba(194,161,232,.24);border-color:#c2a1e8}
+#dashboard>.box:first-child{background:linear-gradient(112deg,#30243f,#3a2b4d 58%,#49375a);border-color:rgba(194,161,232,.25)}#dashboard>.box:first-child:after{background:rgba(224,207,242,.1)}#dashboard>.box:first-child .card{background:rgba(18,14,26,.3);border-color:rgba(222,207,239,.16)}#dashboard>.box:first-child .money{color:#e6d8f2}
+#dashboard>nav{background:rgba(31,25,43,.97);border-color:rgba(194,161,232,.18);box-shadow:0 12px 30px rgba(0,0,0,.22)}#dashboard>nav button{color:#c9bfd4;font-weight:600;letter-spacing:.01em}#dashboard>nav button:hover,#dashboard>nav button.active{background:linear-gradient(90deg,rgba(194,161,232,.2),rgba(194,161,232,.04));border-color:rgba(194,161,232,.27);color:#e5cff8}
+.status{background:#344239;color:#c0dfca}.money{color:#d7c1ed}.adminTitle{border-color:#5b4d68}
+.wa-status,.spin-code-row,.spin-result,.transaction-item{background:#1c1728;border-color:#51435f}.wa-connected,.status-success{color:#a8d5b8}.wa-waiting,.status-pending{color:#dfc9ef}.wa-disconnected,.status-rejected{color:#e5a4b3}
+.wa-method-active{background:linear-gradient(135deg,#d7c1ed,#a987ce)!important;color:#241b31!important}.pairing-code{background:#1c1728;border-color:#c2a1e8;color:#e5cff8}.spin-center{background:#30243f;border-color:#c2a1e8;color:#e5cff8}.spin-pointer{color:#d7c1ed}.spin-result{border-color:#76618b}.transaction-item.income{border-left-color:#86b99a}.transaction-item.withdrawal{border-left-color:#c1839b}
+#message{background:#344239;border-color:#86b99a;color:#f1f4ef}.confirm-box{background:#30243f;border-color:#655476}.confirm-box h2{color:#e5cff8}
+.auth-switch button,a{color:#d7c1ed}
+@media(max-width:760px){#dashboard>nav{background:rgba(31,25,43,.98);border-color:rgba(194,161,232,.22)}}
 </style>
 </head>
 
@@ -262,7 +315,6 @@ a{color:#f3c45b;overflow-wrap:anywhere}
    </div>
    <button type="button" id="spinButton" onclick="playSpin()">🎁 MULAI SPIN</button>
    <div id="spinResult" class="spin-result hidden" aria-live="polite"></div>
-   <button type="button" id="claimSpinButton" class="success hidden" onclick="claimSpinPrize()">💰 KLAIM HADIAH</button>
   </div>
   <hr>
   <h3>Riwayat Spin Saya</h3>
@@ -392,8 +444,8 @@ a{color:#f3c45b;overflow-wrap:anywhere}
     <label>Batas penggunaan total</label>
     <input id="spinUseLimit" type="number" min="1" value="10" required>
     <label>Hadiah saldo (pisahkan dengan koma, Rupiah)</label>
-    <input id="spinPrizeAmounts" value="1000,3000,5000,7000,10000,15000,20000" readonly required>
-    <small>Hadiah tetap: Rp1.000, Rp3.000, Rp5.000, Rp7.000, Rp10.000, Rp15.000, dan Rp20.000. Setiap nominal memiliki peluang sama.</small><br>
+    <input id="spinPrizeAmounts" value="500,1000,2000,5000,10000" required>
+    <small>Setiap nominal memiliki peluang sama. Hadiah dan saldo diproses oleh database.</small><br>
     <button type="submit">BUAT KODE SPIN</button>
    </form>
    <hr>
@@ -443,7 +495,7 @@ function notify(message) {
  const box = $("message");
  box.textContent = message;
  box.classList.remove("hidden");
- window.scrollTo({top:0, behavior:"smooth"});
+ // Toast tidak mengubah posisi scroll halaman.
 }
 
 function escapeHTML(value) {
@@ -529,6 +581,9 @@ function showTab(id) {
  });
 
  $(id).classList.remove("hidden");
+ document.querySelectorAll("#dashboard > nav button").forEach(button => button.classList.remove("active"));
+ const activeButton = document.querySelector('#dashboard > nav button[onclick="showTab(\'' + id + '\')"]');
+ if (activeButton) activeButton.classList.add("active");
 
  if (id === "campaigns") loadCampaigns();
  if (id === "jobs") loadJobs();
@@ -705,17 +760,16 @@ function renderWaResult(result) {
   $("waQrArea").querySelector("small").textContent =
    "QR akan diperbarui otomatis jika diperlukan.";
 
- } else if (result.status === "waiting_qr" || result.status === "connecting") {
-  // Jangan kosongkan gambar QR setiap kali polling menerima status tanpa QR.
-  // QR yang sudah tampil tetap dipertahankan sampai server mengirim QR baru.
-  $("waQrArea").classList.remove("hidden");
-  if (!$("waQrImage").getAttribute("src")) {
-   $("waQrArea").querySelector("small").textContent =
-    "Menunggu QR Code dari server WhatsApp...";
-  }
  } else {
   $("waQrImage").removeAttribute("src");
-  $("waQrArea").classList.add("hidden");
+
+  if (result.status === "waiting_qr" || result.status === "connecting") {
+   $("waQrArea").classList.remove("hidden");
+   $("waQrArea").querySelector("small").textContent =
+    "Menunggu QR Code dari server WhatsApp...";
+  } else {
+   $("waQrArea").classList.add("hidden");
+  }
  }
 
  if (result.pairingCode) {
@@ -726,7 +780,6 @@ function renderWaResult(result) {
   result.status !== "connecting"
  ) {
   $("waPairCodeArea").classList.add("hidden");
-  $("waPairCode").textContent = "--------";
  }
 
  if (result.status === "connected") {
@@ -1009,9 +1062,7 @@ function startWaPolling() {
    return;
   }
 
-  // Jangan biarkan request polling bertabrakan dengan pemeriksaan status
-  // yang sedang berjalan dari tombol QR / Pairing Code.
-  if (waPollingNow || waStatusRequestNow) return;
+  if (waPollingNow) return;
 
   waPollingNow = true;
   const actionVersion = waActionVersion;
@@ -1041,7 +1092,7 @@ function startWaPolling() {
   } finally {
    waPollingNow = false;
   }
- }, 1500);
+ }, 1000);
 }
 
 function stopWaPolling() {
@@ -1615,160 +1666,122 @@ $("wdType").addEventListener("change", function() {
 });
 
 // =========================
-// SPIN WHEEL - HADIAH SALDO + KLAIM
+// SPIN WHEEL - HADIAH SALDO
 // =========================
 let spinVerifiedCode = "";
 let spinBusy = false;
-let pendingSpinId = null;
-let pendingSpinPrize = null;
-const spinPrizes = [1000,3000,5000,7000,10000,15000,20000];
-const spinPalette = ["#f3c45b","#16885c","#2774ae","#a34b9b","#d65b45","#287d91","#8c62bd"];
-
-function setSpinClaimState(show) {
- const claim = $("claimSpinButton");
- const spin = $("spinButton");
- if (claim) claim.classList.toggle("hidden", !show);
- if (spin) spin.classList.toggle("hidden", show);
-}
+const spinPalette = ["#f3c45b", "#16885c", "#2774ae", "#a34b9b", "#d65b45"];
 
 function drawSpinWheel() {
  const canvas = $("spinCanvas");
  if (!canvas) return;
  const ctx = canvas.getContext("2d");
- const cx=300, cy=300, radius=285, slice=Math.PI*2/spinPrizes.length;
+ const prizes = ["Rp500", "Rp1.000", "Rp2.000", "Rp5.000", "Rp10.000", "Rp500", "Rp1.000", "Rp2.000"];
+ const cx = 300, cy = 300, radius = 285, slice = Math.PI * 2 / prizes.length;
  ctx.clearRect(0,0,600,600);
- spinPrizes.forEach((amount,i)=>{
-  const start=-Math.PI/2+i*slice;
+ prizes.forEach((label,i) => {
+  const start = -Math.PI/2 + i*slice;
   ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,radius,start,start+slice); ctx.closePath();
-  ctx.fillStyle=spinPalette[i]; ctx.fill(); ctx.strokeStyle="#fff"; ctx.lineWidth=4; ctx.stroke();
+  ctx.fillStyle = spinPalette[i % spinPalette.length]; ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.stroke();
   ctx.save(); ctx.translate(cx,cy); ctx.rotate(start+slice/2);
-  ctx.fillStyle="#071426"; ctx.font="bold 22px Arial"; ctx.textAlign="right"; ctx.textBaseline="middle";
-  ctx.fillText(rupiah(amount),radius-20,0); ctx.restore();
+  ctx.fillStyle = "#071426"; ctx.font = "bold 25px Arial"; ctx.textAlign = "right";
+  ctx.fillText(label, radius-22, 9); ctx.restore();
  });
- ctx.beginPath(); ctx.arc(cx,cy,48,0,Math.PI*2); ctx.fillStyle="#102744"; ctx.fill();
+ ctx.beginPath(); ctx.arc(cx,cy,45,0,Math.PI*2); ctx.fillStyle="#102744"; ctx.fill();
  ctx.strokeStyle="#f3c45b"; ctx.lineWidth=8; ctx.stroke();
 }
 
 async function verifySpinCode() {
  if (!user) { notify("Silakan login dahulu."); return; }
- const code=$("spinCodeInput").value.trim().toUpperCase();
+ const code = $("spinCodeInput").value.trim().toUpperCase();
  if (!code) { notify("Masukkan kode Spin terlebih dahulu."); return; }
- const button=$("verifySpinCodeButton"); button.disabled=true; button.textContent="MEMERIKSA...";
+ const button = $("verifySpinCodeButton"); button.disabled = true; button.textContent = "MEMERIKSA...";
  try {
-  const {data,error}=await db.rpc("verify_spin_code",{p_code:code});
-  if(error) throw error;
-  if(!data?.valid) throw new Error(data?.message||"Kode tidak valid atau kuota habis.");
-  spinVerifiedCode=code;
+  const {data,error} = await db.rpc("verify_spin_code", {p_code:code});
+  if (error) throw error;
+  if (!data?.valid) throw new Error(data?.message || "Kode tidak valid atau kuota habis.");
+  spinVerifiedCode = code;
   $("spinWheelArea").classList.remove("hidden");
   $("spinResult").classList.add("hidden");
+  notify("Kode valid. Kamu bisa mulai Spin Wheel!");
   drawSpinWheel();
-  if(data.pending_id){
-   pendingSpinId=data.pending_id; pendingSpinPrize=Number(data.pending_prize);
-   $("spinResult").textContent="Hadiah tertunda: "+rupiah(pendingSpinPrize)+". Tekan KLAIM HADIAH untuk memasukkannya ke saldo.";
-   $("spinResult").classList.remove("hidden"); setSpinClaimState(true);
-   $("spinButton").classList.add("hidden");
-   notify("Kamu masih memiliki hadiah yang belum diklaim.");
-  } else {
-   pendingSpinId=null; pendingSpinPrize=null; setSpinClaimState(false);
-   notify("Kode valid. Kamu bisa mulai Spin Wheel!");
-  }
- } catch(error) {
-  spinVerifiedCode=""; $("spinWheelArea").classList.add("hidden");
-  notify("Kode Spin tidak dapat digunakan: "+error.message);
- } finally { button.disabled=false; button.textContent="VERIFIKASI KODE"; }
+ } catch (error) {
+  spinVerifiedCode = "";
+  $("spinWheelArea").classList.add("hidden");
+  notify("Kode Spin tidak dapat digunakan: " + error.message);
+ } finally { button.disabled = false; button.textContent = "VERIFIKASI KODE"; }
 }
 
 async function playSpin() {
- if(!user||!spinVerifiedCode||spinBusy) return;
- const button=$("spinButton"); spinBusy=true; button.disabled=true; button.textContent="RODA BERPUTAR...";
+ if (!user || !spinVerifiedCode || spinBusy) return;
+ const button = $("spinButton"); spinBusy = true; button.disabled = true; button.textContent = "RODA BERPUTAR...";
  try {
-  const {data,error}=await db.rpc("draw_spin_prize",{p_code:spinVerifiedCode});
-  if(error) throw error;
-  const result=Array.isArray(data)?data[0]:data;
-  if(!result?.success||!result.spin_id) throw new Error(result?.message||"Spin gagal diproses.");
-  pendingSpinId=result.spin_id; pendingSpinPrize=Number(result.prize_amount);
-  const index=spinPrizes.indexOf(pendingSpinPrize);
-  if(index<0) throw new Error("Nominal hadiah dari database tidak dikenal.");
-  const canvas=$("spinCanvas");
-  const match=(canvas.style.transform||"").match(/rotate\(([-0-9.]+)deg\)/);
-  const base=match?Number(match[1]):0;
-  const target=(360-((index+0.5)*360/spinPrizes.length))%360;
-  const delta=(target-(base%360)+360)%360;
-  canvas.style.transition="transform 5s cubic-bezier(.12,.75,.12,1)";
-  canvas.style.transform="rotate("+(base+360*6+delta)+"deg)";
-  await new Promise(resolve=>setTimeout(resolve,5100));
-  $("spinResult").textContent="🎉 Selamat! Roda berhenti di "+rupiah(pendingSpinPrize)+". Hadiah belum masuk saldo. Tekan KLAIM HADIAH untuk menerima hadiah.";
-  $("spinResult").classList.remove("hidden"); setSpinClaimState(true);
- } catch(error) { notify("Spin tidak berhasil: "+error.message); }
- finally { spinBusy=false; button.disabled=false; button.textContent="🎁 MULAI SPIN"; }
-}
-
-async function claimSpinPrize() {
- if(!user||!pendingSpinId||spinBusy) return;
- const button=$("claimSpinButton"); spinBusy=true; button.disabled=true; button.textContent="MEMPROSES KLAIM...";
- try {
-  const {data,error}=await db.rpc("claim_spin_prize",{p_spin_id:pendingSpinId});
-  if(error) throw error;
-  const result=Array.isArray(data)?data[0]:data;
-  if(!result?.success) throw new Error(result?.message||"Klaim hadiah gagal.");
-  $("spinResult").textContent="✅ Hadiah "+rupiah(result.prize_amount)+" berhasil diklaim! Saldo kamu sekarang "+rupiah(result.new_balance)+".";
-  $("spinResult").classList.remove("hidden"); $("balance").textContent=rupiah(result.new_balance);
-  pendingSpinId=null; pendingSpinPrize=null; spinVerifiedCode=""; $("spinCodeInput").value="";
-  setSpinClaimState(false);
-  notify("Hadiah berhasil diklaim. Saldo dan transaksi sudah diperbarui.");
-  await Promise.all([loadSpinHistory(),loadWallet()]);
- } catch(error) { notify("Klaim hadiah gagal: "+error.message); }
- finally { spinBusy=false; button.disabled=false; button.textContent="💰 KLAIM HADIAH"; }
+  // Hadiah ditentukan database; animasi hanya menampilkan hasil resmi dari server.
+  const {data,error} = await db.rpc("redeem_spin_code", {p_code:spinVerifiedCode});
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result?.success) throw new Error(result?.message || "Spin gagal diproses.");
+  const canvas = $("spinCanvas");
+  const current = canvas.style.transform || "rotate(0deg)";
+  const match = current.match(/rotate\(([-0-9.]+)deg\)/);
+  const base = match ? Number(match[1]) : 0;
+  const extra = 1800 + Math.floor(Math.random()*900);
+  canvas.style.transition = "transform 4s cubic-bezier(.12,.75,.12,1)";
+  canvas.style.transform = "rotate(" + (base + extra) + "deg)";
+  await new Promise(resolve => setTimeout(resolve, 4100));
+  $("spinResult").textContent = "🎉 Selamat! Kamu mendapatkan " + rupiah(result.prize_amount) + ". Saldo sekarang: " + rupiah(result.new_balance) + ".";
+  $("spinResult").classList.remove("hidden");
+  $("balance").textContent = rupiah(result.new_balance);
+  spinVerifiedCode = "";
+  $("spinCodeInput").value = "";
+  $("spinWheelArea").classList.add("hidden");
+  await Promise.all([loadSpinHistory(), loadWallet()]);
+ } catch (error) {
+  notify("Spin tidak berhasil: " + error.message);
+ } finally { spinBusy = false; button.disabled = false; button.textContent = "🎁 MULAI SPIN"; }
 }
 
 async function loadSpinHistory() {
- if(!user) return;
- const box=$("spinHistory"); box.textContent="Memuat...";
- const {data,error}=await db.from("spin_history").select("id,prize_amount,status,created_at,claimed_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30);
- if(error){box.textContent="Riwayat belum dapat dimuat: "+error.message;return;}
- box.innerHTML="";
- if(!data?.length){box.textContent="Belum ada riwayat Spin.";return;}
- data.forEach(item=>{
-  const row=document.createElement("div"); row.className="transaction-item "+(item.status==="claimed"?"income":"");
-  const title=document.createElement("strong"); title.textContent=rupiah(item.prize_amount);
-  const status=document.createElement("div"); status.textContent=item.status==="claimed"?"Sudah diklaim":"Menunggu klaim";
-  const date=document.createElement("div"); date.className="transaction-date"; date.textContent=dateTime(item.claimed_at||item.created_at);
-  row.append(title,status,date);
-  if(item.status==="pending"){
-   const claim=document.createElement("button"); claim.className="success"; claim.textContent="KLAIM HADIAH";
-   claim.onclick=async()=>{pendingSpinId=item.id;pendingSpinPrize=Number(item.prize_amount);await claimSpinPrize();};
-   row.append(claim);
-  }
-  box.append(row);
+ if (!user) return;
+ const box = $("spinHistory"); box.textContent = "Memuat...";
+ const {data,error} = await db.from("spin_history").select("id,prize_amount,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30);
+ if (error) { box.textContent = "Riwayat belum dapat dimuat: " + error.message; return; }
+ box.innerHTML = "";
+ if (!data?.length) { box.textContent = "Belum ada riwayat Spin."; return; }
+ data.forEach(item => {
+  const row = document.createElement("div"); row.className="transaction-item income";
+  row.textContent = rupiah(item.prize_amount) + " • " + dateTime(item.created_at); box.append(row);
  });
 }
 
 async function loadAdminSpinCodes() {
- if(!isAdmin) return;
- const box=$("adminSpinCodeList"); box.textContent="Memuat...";
- const {data,error}=await db.rpc("admin_list_spin_codes");
- if(error){box.textContent="Gagal memuat kode: "+error.message;return;}
- box.innerHTML="";
- if(!data?.length){box.textContent="Belum ada kode Spin.";return;}
- data.forEach(item=>{
-  const card=document.createElement("div"); card.className="card";
-  const title=document.createElement("h3"); title.textContent=item.code;
-  const detail=document.createElement("p"); detail.textContent="Penggunaan: "+item.used_count+"/"+item.uses_limit+" • Status: "+(item.is_active?"Aktif":"Nonaktif");
-  const prize=document.createElement("p"); prize.textContent="Hadiah: Rp1.000, Rp3.000, Rp5.000, Rp7.000, Rp10.000, Rp15.000, Rp20.000";
-  const toggle=document.createElement("button"); toggle.className=item.is_active?"danger":"success"; toggle.textContent=item.is_active?"NONAKTIFKAN":"AKTIFKAN";
-  toggle.onclick=async()=>{const {error}=await db.rpc("admin_set_spin_code_active",{p_code_id:item.id,p_is_active:!item.is_active});if(error)notify(error.message);else await loadAdminSpinCodes();};
+ if (!isAdmin) return;
+ const box = $("adminSpinCodeList"); box.textContent = "Memuat...";
+ const {data,error} = await db.rpc("admin_list_spin_codes");
+ if (error) { box.textContent = "Gagal memuat kode: " + error.message; return; }
+ box.innerHTML = "";
+ if (!data?.length) { box.textContent = "Belum ada kode Spin."; return; }
+ data.forEach(item => {
+  const card = document.createElement("div"); card.className="card";
+  const title = document.createElement("h3"); title.textContent = item.code;
+  const detail = document.createElement("p"); detail.textContent = "Penggunaan: " + item.used_count + "/" + item.uses_limit + " • Status: " + (item.is_active ? "Aktif" : "Nonaktif");
+  const prize = document.createElement("p"); prize.textContent = "Hadiah: " + (item.prizes || []).map(x => rupiah(x.amount)).join(", ");
+  const toggle = document.createElement("button"); toggle.className = item.is_active ? "danger" : "success"; toggle.textContent = item.is_active ? "NONAKTIFKAN" : "AKTIFKAN";
+  toggle.onclick = async () => { const {error} = await db.rpc("admin_set_spin_code_active",{p_code_id:item.id,p_is_active:!item.is_active}); if(error) notify(error.message); else loadAdminSpinCodes(); };
   card.append(title,detail,prize,toggle); box.append(card);
  });
 }
 
-$("spinCodeForm").onsubmit=async event=>{
- event.preventDefault(); if(!isAdmin)return;
- const limit=Number($("spinUseLimit").value);
- if(!Number.isInteger(limit)||limit<1){notify("Batas penggunaan minimal 1.");return;}
- const code=$("newSpinCode").value.trim().toUpperCase();
- const {error}=await db.rpc("admin_create_spin_code",{p_code:code||null,p_uses_limit:limit,p_prizes:null});
- if(error){notify("Gagal membuat kode: "+error.message);return;}
- notify("Kode Spin berhasil dibuat."); event.currentTarget.reset(); $("spinUseLimit").value="10"; $("spinPrizeAmounts").value="1000,3000,5000,7000,10000,15000,20000"; await loadAdminSpinCodes();
+$("spinCodeForm").onsubmit = async event => {
+ event.preventDefault(); if (!isAdmin) return;
+ const limit = Number($("spinUseLimit").value);
+ const amounts = $("spinPrizeAmounts").value.split(",").map(x => Number(x.trim()));
+ if (!Number.isInteger(limit) || limit < 1 || !amounts.length || amounts.some(x => !Number.isSafeInteger(x) || x < 1)) { notify("Batas penggunaan dan nominal hadiah harus angka Rupiah yang valid."); return; }
+ const code = $("newSpinCode").value.trim().toUpperCase();
+ const {error} = await db.rpc("admin_create_spin_code",{p_code:code || null,p_uses_limit:limit,p_prizes:amounts.map(amount => ({amount}))});
+ if (error) { notify("Gagal membuat kode: " + error.message); return; }
+ notify("Kode Spin berhasil dibuat."); event.currentTarget.reset(); $("spinUseLimit").value="10"; $("spinPrizeAmounts").value="500,1000,2000,5000,10000"; await loadAdminSpinCodes();
 };
 
 // =========================
