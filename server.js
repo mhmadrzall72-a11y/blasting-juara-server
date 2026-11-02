@@ -472,20 +472,22 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       );
     }
 
-    const browser = mode === "pairing"
-      ? (Browsers?.macOS ? Browsers.macOS("Desktop") : ["macOS", "Desktop", "14.4.1"])
-      : ["Blasting Juara", "Chrome", "1.0.0"];
-
+    
+    // Pairing Code memakai browser default Baileys.
+    // QR tetap memakai identitas Blasting Juara yang lama.
     const socketOptions = {
       version,
       auth: state,
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      browser,
+      ...(mode === "qr"
+        ? { browser: ["Blasting Juara", "Chrome", "1.0.0"] }
+        : {}),
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       keepAliveIntervalMs: 25000
     };
+
 
     if (mode === "qr") {
       socketOptions.printQRInTerminal = false;
@@ -618,6 +620,8 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           code,
           "Error:",
           errorMessage
+           "Data:",
+          errorData
         );
 
         if (authRejected) {
