@@ -1,4 +1,3 @@
-
 import WebSocket from "ws";
 globalThis.WebSocket = WebSocket;
 
@@ -237,8 +236,7 @@ async function createDatabaseAuthState(admin, userId) {
 
           if (error) throw error;
         }
-
-        if (upserts.length) {
+                      if (upserts.length) {
           const { error } = await admin
             .from("whatsapp_auth_keys")
             .upsert(upserts, {
@@ -475,9 +473,11 @@ async function startWhatsApp(userId, admin, mode = "qr") {
 
     // Pairing Code memakai identitas browser desktop standar Baileys.
     // QR tetap memakai identitas Blasting Juara yang lama.
-    const browser = mode === "pairing"
-      ? (Browsers?.macOS ? Browsers.macOS("Desktop") : ["macOS", "Desktop", "14.4.1"])
-      : ["Blasting Juara", "Chrome", "1.0.0"];
+    // WhatsApp sekarang menolak payload platform WEB untuk pairing baru.
+    // Dependency Baileys di package.json juga diarahkan ke patch MACOS.
+    const browser = Browsers?.macOS
+      ? Browsers.macOS("Desktop")
+      : ["macOS", "Desktop", "14.4.1"];
 
     const socketOptions = {
       version,
@@ -516,7 +516,8 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       if (sockets.get(userId) !== sock) return;
 
       if (update.qr) {
-        const previous = liveState.get(userId);
+
+                    const previous = liveState.get(userId);
 
         if (mode === "pairing") {
           // Event QR hanya dipakai sebagai tanda socket siap; QR tidak
@@ -815,9 +816,9 @@ app.post(
         throw new Error(
           "Socket WhatsApp berubah. Silakan coba hubungkan ulang."
         );
-      }
+          }
 
-      if (sock.user) {
+                        if (sock.user) {
         throw new Error("WhatsApp sudah terhubung.");
       }
 
