@@ -147,6 +147,16 @@ input,textarea,select{background:#1b1626;border:1px solid #554766;color:#f4eff8;
 #message{background:#344239;border-color:#86b99a;color:#f1f4ef}.confirm-box{background:#30243f;border-color:#655476}.confirm-box h2{color:#e5cff8}
 .auth-switch button,a{color:#d7c1ed}
 @media(max-width:760px){#dashboard>nav{background:rgba(31,25,43,.98);border-color:rgba(194,161,232,.22)}}
+
+/* FINAL FIX: login/daftar selalu tepat di tengah layar, termasuk di HP */
+html,body{min-height:100%;}
+body.auth-mode{height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;overflow:hidden!important;}
+body.auth-mode header{display:none!important;}
+body.auth-mode main{position:fixed!important;inset:0!important;width:100%!important;height:100vh!important;height:100dvh!important;min-height:100vh!important;min-height:100dvh!important;max-width:none!important;margin:0!important;padding:16px!important;display:grid!important;place-items:center!important;overflow-y:auto!important;overflow-x:hidden!important;}
+body.auth-mode #auth,body.auth-mode #auth.box{display:block!important;width:min(100%,440px)!important;max-width:440px!important;margin:0!important;align-self:center!important;justify-self:center!important;max-height:calc(100dvh - 32px);overflow-y:auto;}
+body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;z-index:10000!important;}
+@media(max-width:500px){body.auth-mode main{padding:12px!important;}body.auth-mode #auth.box{padding:20px!important;max-height:calc(100dvh - 24px);}}
+
 </style>
 </head>
 
