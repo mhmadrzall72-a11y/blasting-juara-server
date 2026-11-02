@@ -28,10 +28,6 @@ if (typeof makeWASocket !== "function") {
   throw new Error("makeWASocket tidak ditemukan. Periksa instalasi Baileys.");
 }
 
-if (!Browsers?.macOS) {
-  throw new Error("Fungsi Browsers.macOS tidak tersedia pada versi Baileys ini.");
-}
-
 const app = express();
 app.set("trust proxy", 1);
 
@@ -491,8 +487,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       markOnlineOnConnect: false,
       syncFullHistory: false,
 
-      // Pairing Code memakai browser standar macOS.
-      // QR tetap memakai browser lama yang sudah berhasil.
       browser: mode === "pairing"
         ? Browsers.macOS("Desktop")
         : ["Blasting Juara", "Chrome", "1.0.0"],
@@ -506,16 +500,59 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     socketModes.set(userId, mode);
     pairingReady.delete(userId);
 
-    sock.ev.on("creds.update", async () => {
-      try {
-        await saveCreds();
-      } catch (error) {
-        console.error("Simpan kredensial:", error.message);
-      }
-    });
+    let closeHandled = false;
 
-    sock.ev.on("connection.update", async update => {
-      if (sockets.get(userId) !== sock) return;
+    sock.ev.process(async events => {
+      if (events["creds.update"]) {
+        try {
+          await saveCreds();
+
+          console.log("Kredensial WhatsApp tersimpan:", userId, {
+            registered: Boolean(state.creds.registered),
+            hasMe: Boolean(state.creds.me?.id)
+          });
+        } catch (error) {
+          console.error(
+            "Simpan kredensial:",
+            userId,
+            error.message
+          );
+        }
+      }
+
+      const update = events["connection.update"];
+
+      if (!update || sockets.get(userId) !== sock) {
+        return;
+      }
+
+      if (update.isNewLogin) {
+        try {
+          await saveCreds();
+
+          const phoneNumber = String(state.creds.me?.id || "")
+            .split(":")[0]
+            .split("@")[0] || null;
+
+          await setStatus(
+            admin,
+            userId,
+            "pairing_registered",
+            phoneNumber
+          );
+
+          console.log("WhatsApp menerima proses pairing:", userId, {
+            registered: Boolean(state.creds.registered),
+            hasMe: Boolean(state.creds.me?.id)
+          });
+        } catch (error) {
+          console.error(
+            "Gagal menyimpan hasil pairing:",
+            userId,
+            error.message
+          );
+        }
+      }
 
       if (update.qr) {
         const previous = liveState.get(userId);
@@ -532,6 +569,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           });
 
           console.log("Socket siap untuk Pairing Code:", userId);
+
           await setStatus(admin, userId, "waiting_pairing");
         } else {
           const hasPairingCode =
@@ -557,6 +595,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           });
 
           console.log("QR WhatsApp diterima:", userId);
+
           await setStatus(admin, userId, nextStatus);
         }
       }
@@ -566,6 +605,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       }
 
       if (update.connection === "open") {
+        closeHandled = false;
         clearReconnect(userId);
 
         const phoneNumber = String(sock.user?.id || "")
@@ -579,17 +619,22 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           phoneNumber
         });
 
-        await setStatus(admin, userId, "connected", phoneNumber);
+        await setStatus(
+          admin,
+          userId,
+          "connected",
+          phoneNumber
+        );
 
         console.log("WhatsApp terhubung:", userId);
       }
 
       if (update.connection === "close") {
-        if (sockets.get(userId) !== sock) return;
+        if (closeHandled || sockets.get(userId) !== sock) {
+          return;
+        }
 
-        sockets.delete(userId);
-        socketModes.delete(userId);
-        pairingReady.delete(userId);
+        closeHandled = true;
 
         const code =
           update.lastDisconnect?.error?.output?.statusCode;
@@ -597,28 +642,56 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         const errorMessage =
           update.lastDisconnect?.error?.message || "Tidak diketahui";
 
-        const loggedOut = code === DisconnectReason.loggedOut;
+        const loggedOut =
+          code === DisconnectReason.loggedOut || code === 401;
 
-        liveState.set(userId, {
-          status: "disconnected",
-          qr: null,
-          pairingCode: null,
-          phoneNumber: null
-        });
+        const restartRequired =
+          code === DisconnectReason.restartRequired || code === 515;
 
-        await setStatus(admin, userId, "disconnected");
+        try {
+          await saveCreds();
+        } catch (error) {
+          console.error(
+            "Final save kredensial gagal:",
+            userId,
+            error.message
+          );
+        }
+
+        if (sockets.get(userId) !== sock) {
+          return;
+        }
+
+        sockets.delete(userId);
+        socketModes.delete(userId);
+        pairingReady.delete(userId);
+
+        const previous = liveState.get(userId) || {};
+
+        const phoneNumber = String(
+          state.creds.me?.id || previous.phoneNumber || ""
+        )
+          .split(":")[0]
+          .split("@")[0] || null;
 
         console.error(
           "WhatsApp terputus:",
           userId,
-          "Code:",
-          code,
-          "Error:",
-          errorMessage
+          "Code:", code,
+          "Error:", errorMessage,
+          "Registered:", Boolean(state.creds.registered),
+          "HasMe:", Boolean(state.creds.me?.id)
         );
 
         if (loggedOut) {
           clearReconnect(userId);
+
+          liveState.set(userId, {
+            status: "disconnected",
+            qr: null,
+            pairingCode: null,
+            phoneNumber: null
+          });
 
           await admin
             .from("whatsapp_sessions")
@@ -635,11 +708,46 @@ async function startWhatsApp(userId, admin, mode = "qr") {
             .delete()
             .eq("user_id", userId);
 
+          console.error(
+            "Sesi WhatsApp ditolak/logout; kredensial sesi dibersihkan:",
+            userId
+          );
+
           return;
         }
 
         if (!manualDisconnect.has(userId)) {
           clearReconnect(userId);
+
+          const delay = restartRequired ? 250 : 5000;
+
+          liveState.set(userId, {
+            status: restartRequired
+              ? "restarting"
+              : "disconnected",
+            qr: null,
+            pairingCode: previous.pairingCode || null,
+            pairingCreatedAt: previous.pairingCreatedAt || null,
+            phoneNumber
+          });
+
+          await setStatus(
+            admin,
+            userId,
+            restartRequired
+              ? "restarting"
+              : "disconnected",
+            phoneNumber
+          );
+
+          console.log(
+            restartRequired
+              ? "WhatsApp meminta restart setelah pairing; menyambungkan ulang segera:"
+              : "Menjadwalkan koneksi ulang WhatsApp:",
+            userId,
+            "mode:", mode,
+            "delay:", delay
+          );
 
           const timer = setTimeout(() => {
             reconnectTimers.delete(userId);
@@ -648,11 +756,15 @@ async function startWhatsApp(userId, admin, mode = "qr") {
               !sockets.has(userId) &&
               !manualDisconnect.has(userId)
             ) {
-              startWhatsApp(userId, admin, "qr").catch(error => {
-                console.error("Reconnect:", error.message);
+              startWhatsApp(userId, admin, mode).catch(error => {
+                console.error(
+                  "Reconnect WhatsApp gagal:",
+                  userId,
+                  error.message
+                );
               });
             }
-          }, 5000);
+          }, delay);
 
           reconnectTimers.set(userId, timer);
         }
@@ -733,7 +845,7 @@ app.post(
       });
     }
   }
-);
+  );
 
 // =====================================
 // KONEKSI PAIRING CODE
@@ -772,7 +884,12 @@ app.post(
       clearReconnect(userId);
       pairingReady.delete(userId);
 
-      const sock = await startWhatsApp(userId, req.admin, "pairing");
+      const sock = await startWhatsApp(
+        userId,
+        req.admin,
+        "pairing"
+      );
+
       pairingSocket = sock;
 
       if (sockets.get(userId) !== sock) {
@@ -805,10 +922,13 @@ app.post(
         throw new Error("WhatsApp sudah terhubung.");
       }
 
-      const pairingCode = await sock.requestPairingCode(phoneNumber);
+      const pairingCode =
+        await sock.requestPairingCode(phoneNumber);
 
       if (!pairingCode) {
-        throw new Error("WhatsApp tidak mengembalikan Pairing Code.");
+        throw new Error(
+          "WhatsApp tidak mengembalikan Pairing Code."
+        );
       }
 
       if (sockets.get(userId) !== sock) {
@@ -817,13 +937,11 @@ app.post(
         );
       }
 
-      const pairingCreatedAt = Date.now();
-
       liveState.set(userId, {
         status: "waiting_pairing",
         qr: null,
         pairingCode: String(pairingCode),
-        pairingCreatedAt,
+        pairingCreatedAt: Date.now(),
         phoneNumber
       });
 
@@ -841,7 +959,8 @@ app.post(
         status: "waiting_pairing",
         phoneNumber,
         pairingCode: String(pairingCode),
-        pairingCreatedAt
+        pairingCreatedAt:
+          liveState.get(userId)?.pairingCreatedAt || Date.now()
       };
     })();
 
@@ -854,7 +973,10 @@ app.post(
       console.error("Pairing Code gagal:", {
         userId,
         message: error?.message || String(error),
-        statusCode: error?.output?.statusCode || error?.statusCode || null
+        statusCode:
+          error?.output?.statusCode ||
+          error?.statusCode ||
+          null
       });
 
       if (
@@ -877,11 +999,16 @@ app.post(
           phoneNumber: null
         });
 
-        await setStatus(req.admin, userId, "disconnected");
+        await setStatus(
+          req.admin,
+          userId,
+          "disconnected"
+        );
       }
 
       return res.status(500).json({
-        error: error.message ||
+        error:
+          error.message ||
           "Gagal membuat Pairing Code. Silakan minta kode baru."
       });
     } finally {
@@ -915,7 +1042,12 @@ app.get(
           const savedCreds = decryptJson(data.creds);
 
           if (savedCreds.registered) {
-            await startWhatsApp(userId, req.admin, "qr");
+            await startWhatsApp(
+              userId,
+              req.admin,
+              "qr"
+            );
+
             state = liveState.get(userId);
           }
         }
@@ -931,16 +1063,19 @@ app.get(
       let qrImage = null;
 
       if (state.qr && state.status !== "connected") {
-        qrImage = await QRCode.toDataURL(String(state.qr), {
-          errorCorrectionLevel: "H",
-          type: "image/png",
-          margin: 4,
-          width: 400,
-          color: {
-            dark: "#000000",
-            light: "#FFFFFF"
+        qrImage = await QRCode.toDataURL(
+          String(state.qr),
+          {
+            errorCorrectionLevel: "H",
+            type: "image/png",
+            margin: 4,
+            width: 400,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF"
+            }
           }
-        });
+        );
       }
 
       return res.json({
@@ -954,7 +1089,9 @@ app.get(
       console.error("Status WhatsApp:", error);
 
       return res.status(500).json({
-        error: error.message || "Gagal membaca status WhatsApp."
+        error:
+          error.message ||
+          "Gagal membaca status WhatsApp."
       });
     }
   }
@@ -1021,7 +1158,9 @@ app.post(
       console.error("Disconnect:", error);
 
       return res.status(500).json({
-        error: error.message || "Gagal memutus koneksi WhatsApp."
+        error:
+          error.message ||
+          "Gagal memutus koneksi WhatsApp."
       });
     }
   }
@@ -1032,16 +1171,22 @@ app.post(
 // =====================================
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Blasting Juara berjalan di port ${PORT}`);
+  console.log(
+    `Blasting Juara berjalan di port ${PORT}`
+  );
 
   console.log(
     "Baileys:",
-    typeof makeWASocket === "function" ? "READY" : "ERROR"
+    typeof makeWASocket === "function"
+      ? "READY"
+      : "ERROR"
   );
 
   console.log(
     "Supabase:",
-    SUPABASE_URL ? "CONFIGURED" : "MISSING"
+    SUPABASE_URL
+      ? "CONFIGURED"
+      : "MISSING"
   );
 });
 
