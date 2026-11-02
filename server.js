@@ -404,6 +404,7 @@ function waitForPairingReady(userId, sock, timeoutMs = 60000) {
 // =====================================
 
 async function startWhatsApp(userId, admin, mode = "qr") {
+  // QR dan Pairing Code harus memakai socket dengan mode autentikasi terpisah.
   let existing = sockets.get(userId);
 
   if (existing && socketModes.get(userId) === mode) {
@@ -472,22 +473,22 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       );
     }
 
-    
-    // Pairing Code memakai browser default Baileys.
+    // Pairing Code memakai identitas browser desktop standar Baileys.
     // QR tetap memakai identitas Blasting Juara yang lama.
+    const browser = mode === "pairing"
+      ? (Browsers?.macOS ? Browsers.macOS("Desktop") : ["macOS", "Desktop", "14.4.1"])
+      : ["Blasting Juara", "Chrome", "1.0.0"];
+
     const socketOptions = {
       version,
       auth: state,
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      ...(mode === "qr"
-        ? { browser: ["Blasting Juara", "Chrome", "1.0.0"] }
-        : {}),
+      browser,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       keepAliveIntervalMs: 25000
     };
-
 
     if (mode === "qr") {
       socketOptions.printQRInTerminal = false;
@@ -499,6 +500,8 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     socketModes.set(userId, mode);
     pairingReady.delete(userId);
 
+    // Serialkan penyimpanan kredensial agar event 515 tidak mendahului
+    // proses tulis kredensial pairing ke Supabase.
     let credsSavePromise = Promise.resolve();
 
     sock.ev.on("creds.update", () => {
@@ -516,6 +519,8 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         const previous = liveState.get(userId);
 
         if (mode === "pairing") {
+          // Event QR hanya dipakai sebagai tanda socket siap; QR tidak
+          // dikirim/dipakai ketika pengguna memilih Pairing Code.
           pairingReady.add(userId);
 
           liveState.set(userId, {
@@ -582,6 +587,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       if (update.connection === "close") {
         if (sockets.get(userId) !== sock) return;
 
+        // Simpan mode sebelum map dihapus agar mode pairing tidak tertukar.
         const reconnectMode = socketModes.get(userId) || mode;
 
         sockets.delete(userId);
@@ -594,6 +600,8 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         const errorMessage =
           update.lastDisconnect?.error?.message || "Tidak diketahui";
 
+        // Pada percobaan Pairing Code, 401 Connection Failure tidak otomatis
+        // berarti sesi lama logout. Jangan hapus kredensial hanya karena 401.
         const authRejected = code === DisconnectReason.loggedOut;
 
         const restartRequired = code === DisconnectReason.restartRequired;
@@ -620,11 +628,11 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           code,
           "Error:",
           errorMessage
-           "Data:",
-          errorData
         );
 
         if (authRejected) {
+          // Jangan hapus kredensial Supabase otomatis. Simpan untuk
+          // pemeriksaan manual agar sesi QR yang lama tidak hilang.
           clearReconnect(userId);
           console.error(
             "WhatsApp menolak autentikasi. Kredensial tetap disimpan:",
@@ -633,6 +641,9 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           return;
         }
 
+        // 515 adalah sinyal resmi WhatsApp untuk membuka socket baru
+        // memakai kredensial hasil pairing yang baru saja disimpan.
+        // QR tetap memakai perilaku reconnect lama (5 detik).
         if (
           !manualDisconnect.has(userId) &&
           (reconnectMode === "qr" || shouldRestartPairing)
@@ -865,6 +876,8 @@ app.post(
         statusCode: error?.output?.statusCode || error?.statusCode || null
       });
 
+      // Bersihkan socket pairing yang gagal agar permintaan berikutnya
+      // membuat koneksi baru dan tidak memakai state pairing yang kedaluwarsa.
       if (pairingSocket && sockets.get(userId) === pairingSocket && !pairingSocket.user) {
         sockets.delete(userId);
         socketModes.delete(userId);
@@ -930,6 +943,7 @@ app.get(
 
       let qrImage = null;
 
+      // QR tetap ditampilkan selama belum connected.
       if (state.qr && state.status !== "connected") {
         qrImage = await QRCode.toDataURL(String(state.qr), {
           errorCorrectionLevel: "H",
@@ -1044,4 +1058,3 @@ app.listen(PORT, "0.0.0.0", () => {
     SUPABASE_URL ? "CONFIGURED" : "MISSING"
   );
 });
-
