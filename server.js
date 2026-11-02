@@ -1,3 +1,4 @@
+
 import WebSocket from "ws";
 globalThis.WebSocket = WebSocket;
 
@@ -19,11 +20,16 @@ const {
   BufferJSON,
   initAuthCreds,
   DisconnectReason,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  Browsers
 } = baileys;
 
 if (typeof makeWASocket !== "function") {
   throw new Error("makeWASocket tidak ditemukan. Periksa instalasi Baileys.");
+}
+
+if (!Browsers?.macOS) {
+  throw new Error("Fungsi Browsers.macOS tidak tersedia pada versi Baileys ini.");
 }
 
 const app = express();
@@ -402,7 +408,6 @@ function waitForPairingReady(userId, sock, timeoutMs = 60000) {
 // =====================================
 
 async function startWhatsApp(userId, admin, mode = "qr") {
-  // QR dan Pairing Code harus memakai socket dengan mode autentikasi terpisah.
   let existing = sockets.get(userId);
 
   if (existing && socketModes.get(userId) === mode) {
@@ -413,7 +418,11 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     sockets.delete(userId);
     socketModes.delete(userId);
     pairingReady.delete(userId);
-    try { existing.end(undefined); } catch {}
+
+    try {
+      existing.end(undefined);
+    } catch {}
+
     existing = null;
   }
 
@@ -435,9 +444,13 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     if (sockets.get(userId) === pendingSocket) {
       sockets.delete(userId);
     }
+
     socketModes.delete(userId);
     pairingReady.delete(userId);
-    try { pendingSocket?.end(undefined); } catch {}
+
+    try {
+      pendingSocket?.end(undefined);
+    } catch {}
   }
 
   const task = (async () => {
@@ -477,7 +490,13 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      browser: ["Blasting Juara", "Chrome", "1.0.0"],
+
+      // Pairing Code memakai browser standar macOS.
+      // QR tetap memakai browser lama yang sudah berhasil.
+      browser: mode === "pairing"
+        ? Browsers.macOS("Desktop")
+        : ["Blasting Juara", "Chrome", "1.0.0"],
+
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       keepAliveIntervalMs: 25000
@@ -502,8 +521,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         const previous = liveState.get(userId);
 
         if (mode === "pairing") {
-          // Event QR hanya dipakai sebagai tanda socket siap; QR tidak
-          // dikirim/dipakai ketika pengguna memilih Pairing Code.
           pairingReady.add(userId);
 
           liveState.set(userId, {
@@ -800,11 +817,13 @@ app.post(
         );
       }
 
+      const pairingCreatedAt = Date.now();
+
       liveState.set(userId, {
         status: "waiting_pairing",
         qr: null,
         pairingCode: String(pairingCode),
-        pairingCreatedAt: Date.now(),
+        pairingCreatedAt,
         phoneNumber
       });
 
@@ -822,7 +841,7 @@ app.post(
         status: "waiting_pairing",
         phoneNumber,
         pairingCode: String(pairingCode),
-        pairingCreatedAt: liveState.get(userId)?.pairingCreatedAt || Date.now()
+        pairingCreatedAt
       };
     })();
 
@@ -838,13 +857,18 @@ app.post(
         statusCode: error?.output?.statusCode || error?.statusCode || null
       });
 
-      // Bersihkan socket pairing yang gagal agar permintaan berikutnya
-      // membuat koneksi baru dan tidak memakai state pairing yang kedaluwarsa.
-      if (pairingSocket && sockets.get(userId) === pairingSocket && !pairingSocket.user) {
+      if (
+        pairingSocket &&
+        sockets.get(userId) === pairingSocket &&
+        !pairingSocket.user
+      ) {
         sockets.delete(userId);
         socketModes.delete(userId);
         pairingReady.delete(userId);
-        try { pairingSocket.end(undefined); } catch {}
+
+        try {
+          pairingSocket.end(undefined);
+        } catch {}
 
         liveState.set(userId, {
           status: "disconnected",
@@ -857,7 +881,8 @@ app.post(
       }
 
       return res.status(500).json({
-        error: error.message || "Gagal membuat Pairing Code. Silakan minta kode baru."
+        error: error.message ||
+          "Gagal membuat Pairing Code. Silakan minta kode baru."
       });
     } finally {
       pairingLocks.delete(userId);
@@ -905,7 +930,6 @@ app.get(
 
       let qrImage = null;
 
-      // QR tetap ditampilkan selama belum connected.
       if (state.qr && state.status !== "connected") {
         qrImage = await QRCode.toDataURL(String(state.qr), {
           errorCorrectionLevel: "H",
@@ -1020,3 +1044,6 @@ app.listen(PORT, "0.0.0.0", () => {
     SUPABASE_URL ? "CONFIGURED" : "MISSING"
   );
 });
+
+
+
