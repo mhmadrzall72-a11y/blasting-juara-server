@@ -419,19 +419,23 @@ async function startWhatsApp(userId, admin) {
 
         // QR CODE
         if (update.qr) {
-          liveState.set(userId, {
-            status: "waiting_qr",
-            qr: update.qr,
-            pairingCode: null,
-            phoneNumber: null
-          });
+  const current = liveState.get(userId);
 
-          await setStatus(
-            admin,
-            userId,
-            "waiting_qr"
-          );
-        }
+  // Jangan timpa Pairing Code yang sedang aktif
+  if (
+    current?.status !== "waiting_pairing" ||
+    !current?.pairingCode
+  ) {
+    liveState.set(userId, {
+      status: "waiting_qr",
+      qr: update.qr,
+      pairingCode: null,
+      phoneNumber: null
+    });
+
+    await setStatus(admin, userId, "waiting_qr");
+  }
+    }
 
         // CONNECTED
         if (update.connection === "open") {
