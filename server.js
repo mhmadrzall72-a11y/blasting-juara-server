@@ -1,4 +1,3 @@
-
 import WebSocket from "ws";
 globalThis.WebSocket = WebSocket;
 
@@ -48,10 +47,33 @@ const reconnectTimers = new Map();
 const pairingLocks = new Map();
 const manualDisconnect = new Set();
 
-// =====================================
-// SUPABASE
-// =====================================
+// CACHE VERSI BAILEYS
+let cachedBaileysVersion = null;
+let versionFetchPromise = null;
 
+async function getBaileysVersion() {
+  if (cachedBaileysVersion) return cachedBaileysVersion;
+  if (versionFetchPromise) return versionFetchPromise;
+
+  versionFetchPromise = (async () => {
+    try {
+      const latest = await fetchLatestBaileysVersion();
+      cachedBaileysVersion = latest.version;
+      console.log("WhatsApp Web version:", cachedBaileysVersion);
+      return cachedBaileysVersion;
+    } finally {
+      versionFetchPromise = null;
+    }
+  })();
+
+  return versionFetchPromise;
+}
+
+// CACHE QR
+const qrImageCache = new Map();
+const QR_CACHE_LIMIT = 100;
+
+// SUPABASE
 function getAdmin() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("Konfigurasi Supabase belum lengkap.");
@@ -73,10 +95,7 @@ function getAdmin() {
   );
 }
 
-// =====================================
 // ENKRIPSI SESSION
-// =====================================
-
 function encryptJson(value) {
   const key = Buffer.from(SESSION_ENCRYPTION_KEY, "hex");
   const iv = crypto.randomBytes(12);
@@ -122,10 +141,7 @@ function decryptJson(record) {
   return JSON.parse(plain, BufferJSON.reviver);
 }
 
-// =====================================
 // AUTH USER
-// =====================================
-
 async function requireUser(req, res, next) {
   try {
     const header = req.headers.authorization || "";
@@ -152,7 +168,7 @@ async function requireUser(req, res, next) {
     req.user = data.user;
     req.admin = admin;
 
-    next();
+    return next();
   } catch (error) {
     console.error("Auth:", error.message);
 
@@ -162,10 +178,7 @@ async function requireUser(req, res, next) {
   }
 }
 
-// =====================================
 // DATABASE AUTH STATE
-// =====================================
-
 async function createDatabaseAuthState(admin, userId) {
   const { data: existing, error } = await admin
     .from("whatsapp_sessions")
@@ -265,10 +278,7 @@ async function createDatabaseAuthState(admin, userId) {
   };
 }
 
-// =====================================
 // SESSION DATABASE
-// =====================================
-
 async function ensureSession(admin, userId, creds, status) {
   const { error } = await admin
     .from("whatsapp_sessions")
@@ -299,10 +309,7 @@ async function setStatus(admin, userId, status, phoneNumber = null) {
   }
 }
 
-// =====================================
-// RECONNECT MANAGEMENT
-// =====================================
-
+// RECONNECT
 function clearReconnect(userId) {
   const timer = reconnectTimers.get(userId);
 
@@ -311,11 +318,8 @@ function clearReconnect(userId) {
   reconnectTimers.delete(userId);
 }
 
-// =====================================
 // TUNGGU SOCKET SIAP
-// =====================================
-
-function waitForPairingReady(userId, sock, timeoutMs = 60000) {
+function waitForPairingReady(userId, sock, timeoutMs = 45000) {
   return new Promise((resolve, reject) => {
     if (sockets.get(userId) !== sock) {
       reject(new Error("Socket WhatsApp sudah berubah. Coba hubungkan ulang."));
@@ -327,9 +331,7 @@ function waitForPairingReady(userId, sock, timeoutMs = 60000) {
       return;
     }
 
-    const current = liveState.get(userId);
-
-    if (current?.qr) {
+    if (liveState.get(userId)?.qr) {
       resolve();
       return;
     }
@@ -386,9 +388,7 @@ function waitForPairingReady(userId, sock, timeoutMs = 60000) {
 
     sock.ev.on("connection.update", onUpdate);
 
-    const latest = liveState.get(userId);
-
-    if (latest?.qr) {
+    if (liveState.get(userId)?.qr) {
       done();
     } else if (sockets.get(userId) !== sock) {
       done(new Error("Koneksi WhatsApp sudah terputus."));
@@ -396,10 +396,7 @@ function waitForPairingReady(userId, sock, timeoutMs = 60000) {
   });
 }
 
-// =====================================
 // WHATSAPP SOCKET
-// =====================================
-
 async function startWhatsApp(userId, admin) {
   if (sockets.has(userId)) {
     return sockets.get(userId);
@@ -425,15 +422,9 @@ async function startWhatsApp(userId, admin) {
     let version;
 
     try {
-      const latest = await fetchLatestBaileysVersion();
-      version = latest.version;
-
-      console.log("WhatsApp Web version:", version);
+      version = await getBaileysVersion();
     } catch (error) {
-      console.error(
-        "Gagal mengambil versi WhatsApp Web:",
-        error.message
-      );
+      console.error("Gagal mengambil versi WhatsApp Web:", error.message);
 
       throw new Error(
         "Tidak bisa mengambil versi WhatsApp Web. Periksa koneksi server."
@@ -602,10 +593,7 @@ async function startWhatsApp(userId, admin) {
   }
 }
 
-// =====================================
-// HOME / HEALTH
-// =====================================
-
+// HOME
 app.get("/", (_req, res) => {
   res.json({
     status: "online",
@@ -613,6 +601,7 @@ app.get("/", (_req, res) => {
   });
 });
 
+// HEALTH
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -633,10 +622,7 @@ const connectLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// =====================================
 // KONEKSI QR
-// =====================================
-
 app.post(
   "/whatsapp/connect",
   connectLimiter,
@@ -666,10 +652,7 @@ app.post(
   }
 );
 
-// =====================================
 // KONEKSI PAIRING CODE
-// =====================================
-
 app.post(
   "/whatsapp/pair",
   connectLimiter,
@@ -720,7 +703,7 @@ app.post(
         );
       }
 
-      await waitForPairingReady(userId, sock, 60000);
+      await waitForPairingReady(userId, sock, 45000);
 
       if (sockets.get(userId) !== sock) {
         throw new Error(
@@ -787,10 +770,7 @@ app.post(
   }
 );
 
-// =====================================
 // STATUS WHATSAPP
-// =====================================
-
 app.get(
   "/whatsapp/status",
   requireUser,
@@ -827,18 +807,30 @@ app.get(
 
       let qrImage = null;
 
-      // QR tetap ditampilkan selama belum connected.
       if (state.qr && state.status !== "connected") {
-        qrImage = await QRCode.toDataURL(String(state.qr), {
-          errorCorrectionLevel: "H",
-          type: "image/png",
-          margin: 4,
-          width: 400,
-          color: {
-            dark: "#000000",
-            light: "#FFFFFF"
+        const qrText = String(state.qr);
+
+        qrImage = qrImageCache.get(qrText);
+
+        if (!qrImage) {
+          qrImage = await QRCode.toDataURL(qrText, {
+            errorCorrectionLevel: "H",
+            type: "image/png",
+            margin: 4,
+            width: 400,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF"
+            }
+          });
+
+          if (qrImageCache.size >= QR_CACHE_LIMIT) {
+            const oldestKey = qrImageCache.keys().next().value;
+            if (oldestKey) qrImageCache.delete(oldestKey);
           }
-        });
+
+          qrImageCache.set(qrText, qrImage);
+        }
       }
 
       return res.json({
@@ -857,10 +849,7 @@ app.get(
   }
 );
 
-// =====================================
-// PUTUSKAN WHATSAPP
-// =====================================
-
+// DISCONNECT
 app.post(
   "/whatsapp/disconnect",
   requireUser,
@@ -872,7 +861,6 @@ app.post(
       clearReconnect(userId);
 
       const sock = sockets.get(userId);
-
       sockets.delete(userId);
 
       if (sock) {
@@ -922,10 +910,7 @@ app.post(
   }
 );
 
-// =====================================
 // SERVER START
-// =====================================
-
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Blasting Juara berjalan di port ${PORT}`);
 
