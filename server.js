@@ -414,11 +414,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     sockets.delete(userId);
     socketModes.delete(userId);
     pairingReady.delete(userId);
-
-    try {
-      existing.end(undefined);
-    } catch {}
-
+    try { existing.end(undefined); } catch {}
     existing = null;
   }
 
@@ -440,13 +436,9 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     if (sockets.get(userId) === pendingSocket) {
       sockets.delete(userId);
     }
-
     socketModes.delete(userId);
     pairingReady.delete(userId);
-
-    try {
-      pendingSocket?.end(undefined);
-    } catch {}
+    try { pendingSocket?.end(undefined); } catch {}
   }
 
   const task = (async () => {
@@ -480,14 +472,8 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       );
     }
 
-    // Pairing memakai browser desktop standar Baileys.
-    // QR tetap menggunakan identitas Blasting Juara sebelumnya.
     const browser = mode === "pairing"
-      ? (
-          Browsers?.macOS
-            ? Browsers.macOS("Desktop")
-            : ["macOS", "Desktop", "14.4.1"]
-        )
+      ? (Browsers?.macOS ? Browsers.macOS("Desktop") : ["macOS", "Desktop", "14.4.1"])
       : ["Blasting Juara", "Chrome", "1.0.0"];
 
     const socketOptions = {
@@ -511,12 +497,14 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     socketModes.set(userId, mode);
     pairingReady.delete(userId);
 
-    sock.ev.on("creds.update", async () => {
-      try {
-        await saveCreds();
-      } catch (error) {
-        console.error("Simpan kredensial:", error.message);
-      }
+    let credsSavePromise = Promise.resolve();
+
+    sock.ev.on("creds.update", () => {
+      credsSavePromise = credsSavePromise
+        .then(() => saveCreds())
+        .catch(error => {
+          console.error("Simpan kredensial:", error.message);
+        });
     });
 
     sock.ev.on("connection.update", async update => {
@@ -537,7 +525,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           });
 
           console.log("Socket siap untuk Pairing Code:", userId);
-
           await setStatus(admin, userId, "waiting_pairing");
         } else {
           const hasPairingCode =
@@ -563,7 +550,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           });
 
           console.log("QR WhatsApp diterima:", userId);
-
           await setStatus(admin, userId, nextStatus);
         }
       }
@@ -606,17 +592,24 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         const errorMessage =
           update.lastDisconnect?.error?.message || "Tidak diketahui";
 
-        const authRejected =
-          code === DisconnectReason.loggedOut;
+        const authRejected = code === DisconnectReason.loggedOut;
+
+        const restartRequired = code === DisconnectReason.restartRequired;
+        const shouldRestartPairing =
+          restartRequired && reconnectMode === "pairing";
 
         liveState.set(userId, {
-          status: "disconnected",
+          status: shouldRestartPairing ? "connecting" : "disconnected",
           qr: null,
           pairingCode: null,
           phoneNumber: null
         });
 
-        await setStatus(admin, userId, "disconnected");
+        await setStatus(
+          admin,
+          userId,
+          shouldRestartPairing ? "connecting" : "disconnected"
+        );
 
         console.error(
           "WhatsApp terputus:",
@@ -628,35 +621,39 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         );
 
         if (authRejected) {
-          // Kredensial tidak dihapus otomatis.
-          // Ini melindungi sesi lama agar tidak hilang tanpa persetujuan.
           clearReconnect(userId);
-
           console.error(
             "WhatsApp menolak autentikasi. Kredensial tetap disimpan:",
             userId
           );
-
           return;
         }
 
-        // Pairing tidak otomatis dialihkan ke QR.
-        // Pengguna perlu meminta kode pairing baru jika socket putus.
-        if (!manualDisconnect.has(userId) && reconnectMode === "qr") {
+        if (
+          !manualDisconnect.has(userId) &&
+          (reconnectMode === "qr" || shouldRestartPairing)
+        ) {
           clearReconnect(userId);
 
-          const timer = setTimeout(() => {
+          const reconnectDelay = shouldRestartPairing ? 1000 : 5000;
+          const timer = setTimeout(async () => {
             reconnectTimers.delete(userId);
 
             if (
               !sockets.has(userId) &&
               !manualDisconnect.has(userId)
             ) {
-              startWhatsApp(userId, admin, "qr").catch(error => {
-                console.error("Reconnect QR:", error.message);
-              });
+              try {
+                if (shouldRestartPairing) {
+                  await credsSavePromise;
+                }
+
+                await startWhatsApp(userId, admin, reconnectMode);
+              } catch (error) {
+                console.error("Reconnect WhatsApp:", error.message);
+              }
             }
-          }, 5000);
+          }, reconnectDelay);
 
           reconnectTimers.set(userId, timer);
         }
@@ -809,13 +806,10 @@ app.post(
         throw new Error("WhatsApp sudah terhubung.");
       }
 
-      const pairingCode =
-        await sock.requestPairingCode(phoneNumber);
+      const pairingCode = await sock.requestPairingCode(phoneNumber);
 
       if (!pairingCode || typeof pairingCode !== "string") {
-        throw new Error(
-          "WhatsApp tidak mengembalikan Pairing Code yang valid."
-        );
+        throw new Error("WhatsApp tidak mengembalikan Pairing Code yang valid.");
       }
 
       if (sockets.get(userId) !== sock) {
@@ -851,8 +845,7 @@ app.post(
         status: "waiting_pairing",
         phoneNumber,
         pairingCode: String(pairingCode),
-        pairingCreatedAt:
-          liveState.get(userId)?.pairingCreatedAt || Date.now()
+        pairingCreatedAt: liveState.get(userId)?.pairingCreatedAt || Date.now()
       };
     })();
 
@@ -865,22 +858,14 @@ app.post(
       console.error("Pairing Code gagal:", {
         userId,
         message: error?.message || String(error),
-        statusCode:
-          error?.output?.statusCode || error?.statusCode || null
+        statusCode: error?.output?.statusCode || error?.statusCode || null
       });
 
-      if (
-        pairingSocket &&
-        sockets.get(userId) === pairingSocket &&
-        !pairingSocket.user
-      ) {
+      if (pairingSocket && sockets.get(userId) === pairingSocket && !pairingSocket.user) {
         sockets.delete(userId);
         socketModes.delete(userId);
         pairingReady.delete(userId);
-
-        try {
-          pairingSocket.end(undefined);
-        } catch {}
+        try { pairingSocket.end(undefined); } catch {}
 
         liveState.set(userId, {
           status: "disconnected",
@@ -893,9 +878,7 @@ app.post(
       }
 
       return res.status(500).json({
-        error:
-          error.message ||
-          "Gagal membuat Pairing Code. Silakan minta kode baru."
+        error: error.message || "Gagal membuat Pairing Code. Silakan minta kode baru."
       });
     } finally {
       pairingLocks.delete(userId);
