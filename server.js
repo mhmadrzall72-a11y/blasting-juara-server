@@ -648,6 +648,7 @@ app.post(
 // KONEKSI PAIRING CODE
 // =====================================
 
+
 app.post(
   "/whatsapp/pair",
   connectLimiter,
@@ -660,8 +661,7 @@ app.post(
 
       // Ubah 08 menjadi 628
       if (phoneNumber.startsWith("0")) {
-        phoneNumber =
-          "62" + phoneNumber.slice(1);
+        phoneNumber = "62" + phoneNumber.slice(1);
       }
 
       if (!/^[1-9]\d{9,14}$/.test(phoneNumber)) {
@@ -688,17 +688,35 @@ app.post(
         });
       }
 
-      // Pastikan socket belum ditutup
-      if (sock.ws?.readyState !== 1) {
+      // Tunggu sampai WebSocket benar-benar terbuka
+      let attempts = 0;
+
+      while (sock.ws?.readyState !== 1 && attempts < 200) {
+        if (
+          !sock.ws ||
+          sock.ws.readyState === 2 ||
+          sock.ws.readyState === 3
+        ) {
+          throw new Error(
+            "Koneksi WhatsApp tertutup sebelum siap. Coba lagi."
+          );
+        }
+
         await new Promise(resolve =>
-          setTimeout(resolve, 1500)
+          setTimeout(resolve, 100)
+        );
+
+        attempts++;
+      }
+
+      if (sock.ws?.readyState !== 1) {
+        throw new Error(
+          "Koneksi WhatsApp belum siap setelah 20 detik. Coba lagi."
         );
       }
 
       const pairingCode =
-        await sock.requestPairingCode(
-          phoneNumber
-        );
+        await sock.requestPairingCode(phoneNumber);
 
       liveState.set(userId, {
         status: "waiting_pairing",
@@ -714,11 +732,11 @@ app.post(
       );
 
       console.log(
-        "Pairing code dibuat:",
+        "Pairing code berhasil dibuat:",
         userId
       );
 
-      res.json({
+      return res.json({
         success: true,
         status: "waiting_pairing",
         phoneNumber,
@@ -731,7 +749,7 @@ app.post(
         error
       );
 
-      res.status(500).json({
+      return res.status(500).json({
         error:
           error.message ||
           "Gagal membuat Pairing Code."
@@ -739,6 +757,8 @@ app.post(
     }
   }
 );
+        
+
 
 // =====================================
 // STATUS WHATSAPP
