@@ -1,3 +1,4 @@
+
 import WebSocket from "ws";
 globalThis.WebSocket = WebSocket;
 
@@ -18,7 +19,8 @@ const makeWASocket =
 const {
   BufferJSON,
   initAuthCreds,
-  DisconnectReason
+  DisconnectReason,
+  fetchLatestBaileysVersion
 } = baileys;
 
 if (typeof makeWASocket !== "function") {
@@ -310,10 +312,10 @@ function clearReconnect(userId) {
 }
 
 // =====================================
-// TUNGGU SOCKET SIAP UNTUK PAIRING
+// TUNGGU SOCKET SIAP
 // =====================================
 
-function waitForPairingReady(userId, sock, timeoutMs = 45000) {
+function waitForPairingReady(userId, sock, timeoutMs = 60000) {
   return new Promise((resolve, reject) => {
     if (sockets.get(userId) !== sock) {
       reject(new Error("Socket WhatsApp sudah berubah. Coba hubungkan ulang."));
@@ -333,6 +335,7 @@ function waitForPairingReady(userId, sock, timeoutMs = 45000) {
     }
 
     let finished = false;
+    let timer;
 
     const cleanup = () => {
       clearTimeout(timer);
@@ -366,13 +369,16 @@ function waitForPairingReady(userId, sock, timeoutMs = 45000) {
       }
 
       if (update.connection === "close") {
+        const code =
+          update.lastDisconnect?.error?.output?.statusCode;
+
         done(new Error(
-          "Koneksi WhatsApp terputus sebelum Pairing Code dibuat."
+          `Koneksi WhatsApp terputus sebelum Pairing Code dibuat. Code: ${code || "unknown"}`
         ));
       }
     };
 
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       done(new Error(
         "Waktu tunggu koneksi habis. Coba hubungkan ulang WhatsApp."
       ));
@@ -416,7 +422,26 @@ async function startWhatsApp(userId, admin) {
       phoneNumber: null
     });
 
+    let version;
+
+    try {
+      const latest = await fetchLatestBaileysVersion();
+      version = latest.version;
+
+      console.log("WhatsApp Web version:", version);
+    } catch (error) {
+      console.error(
+        "Gagal mengambil versi WhatsApp Web:",
+        error.message
+      );
+
+      throw new Error(
+        "Tidak bisa mengambil versi WhatsApp Web. Periksa koneksi server."
+      );
+    }
+
     const sock = makeWASocket({
+      version,
       auth: state,
       printQRInTerminal: false,
       markOnlineOnConnect: false,
@@ -440,20 +465,16 @@ async function startWhatsApp(userId, admin) {
     sock.ev.on("connection.update", async update => {
       if (sockets.get(userId) !== sock) return;
 
-      // QR DITERIMA DARI BAILEYS
       if (update.qr) {
         const previous = liveState.get(userId);
 
-        // Jangan hapus Pairing Code jika sudah berhasil dibuat.
         const hasPairingCode =
           previous?.status === "waiting_pairing" &&
           Boolean(previous?.pairingCode);
 
-        const isPairingRequest = pairingLocks.has(userId);
-
         const nextStatus = hasPairingCode
           ? "waiting_pairing"
-          : isPairingRequest
+          : pairingLocks.has(userId)
             ? "connecting"
             : "waiting_qr";
 
@@ -468,10 +489,15 @@ async function startWhatsApp(userId, admin) {
             : null
         });
 
+        console.log("QR WhatsApp diterima:", userId);
+
         await setStatus(admin, userId, nextStatus);
       }
 
-      // KONEKSI BERHASIL
+      if (update.connection === "connecting") {
+        console.log("WhatsApp sedang menghubungkan:", userId);
+      }
+
       if (update.connection === "open") {
         clearReconnect(userId);
 
@@ -491,7 +517,6 @@ async function startWhatsApp(userId, admin) {
         console.log("WhatsApp terhubung:", userId);
       }
 
-      // KONEKSI TERPUTUS
       if (update.connection === "close") {
         if (sockets.get(userId) !== sock) return;
 
@@ -499,6 +524,9 @@ async function startWhatsApp(userId, admin) {
 
         const code =
           update.lastDisconnect?.error?.output?.statusCode;
+
+        const errorMessage =
+          update.lastDisconnect?.error?.message || "Tidak diketahui";
 
         const loggedOut = code === DisconnectReason.loggedOut;
 
@@ -511,7 +539,14 @@ async function startWhatsApp(userId, admin) {
 
         await setStatus(admin, userId, "disconnected");
 
-        console.log("WhatsApp terputus:", userId, "Code:", code);
+        console.error(
+          "WhatsApp terputus:",
+          userId,
+          "Code:",
+          code,
+          "Error:",
+          errorMessage
+        );
 
         if (loggedOut) {
           clearReconnect(userId);
@@ -586,7 +621,8 @@ app.get("/health", (_req, res) => {
       SUPABASE_SERVICE_ROLE_KEY &&
       /^[a-fA-F0-9]{64}$/.test(SESSION_ENCRYPTION_KEY || "")
     ),
-    baileysLoaded: typeof makeWASocket === "function"
+    baileysLoaded: typeof makeWASocket === "function",
+    pairingSupported: true
   });
 });
 
@@ -666,6 +702,12 @@ app.post(
 
       const sock = await startWhatsApp(userId, req.admin);
 
+      if (sockets.get(userId) !== sock) {
+        throw new Error(
+          "Socket berubah saat memulai koneksi. Coba hubungkan ulang."
+        );
+      }
+
       if (sock.user) {
         throw new Error(
           "WhatsApp sudah terhubung. Putuskan koneksi dahulu jika ingin mengganti nomor."
@@ -678,11 +720,11 @@ app.post(
         );
       }
 
-      await waitForPairingReady(userId, sock, 45000);
+      await waitForPairingReady(userId, sock, 60000);
 
       if (sockets.get(userId) !== sock) {
         throw new Error(
-          "Koneksi WhatsApp berubah. Silakan coba hubungkan ulang."
+          "Socket WhatsApp berubah. Silakan coba hubungkan ulang."
         );
       }
 
@@ -690,11 +732,16 @@ app.post(
         throw new Error("WhatsApp sudah terhubung.");
       }
 
-      // Minta Pairing Code dari socket yang sama.
       const pairingCode = await sock.requestPairingCode(phoneNumber);
 
       if (!pairingCode) {
         throw new Error("WhatsApp tidak mengembalikan Pairing Code.");
+      }
+
+      if (sockets.get(userId) !== sock) {
+        throw new Error(
+          "Socket berubah setelah permintaan Pairing Code."
+        );
       }
 
       const latestState = liveState.get(userId);
@@ -780,8 +827,8 @@ app.get(
 
       let qrImage = null;
 
-      // Buat gambar QR PNG dalam format data URL.
-      if (state.qr && state.status === "waiting_qr") {
+      // QR tetap ditampilkan selama belum connected.
+      if (state.qr && state.status !== "connected") {
         qrImage = await QRCode.toDataURL(String(state.qr), {
           errorCorrectionLevel: "H",
           type: "image/png",
@@ -810,7 +857,7 @@ app.get(
   }
 );
 
-// =====================================
+/ =====================================
 // PUTUSKAN WHATSAPP
 // =====================================
 
@@ -826,8 +873,6 @@ app.post(
 
       const sock = sockets.get(userId);
 
-      // Hapus referensi sebelum logout supaya event close
-      // tidak menjalankan reconnect otomatis.
       sockets.delete(userId);
 
       if (sock) {
@@ -894,4 +939,5 @@ app.listen(PORT, "0.0.0.0", () => {
     SUPABASE_URL ? "CONFIGURED" : "MISSING"
   );
 });
+
 
