@@ -177,78 +177,6 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 .admin-withdraw-actions button{flex:1;margin:0;padding:11px 8px;font-size:11px}
 @media(max-width:420px){.admin-withdraw-card{padding:13px}.admin-withdraw-grid{gap:7px}.admin-withdraw-field{padding:9px}.admin-withdraw-value{font-size:12px}.admin-withdraw-actions{flex-direction:column}}
 
-
-/* Pusat notifikasi */
-.notification-bell{position:relative!important}
-.notification-count{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:5px;border-radius:20px;background:#b75b78;color:#fff;font-size:10px;font-weight:800}
-.notification-card{display:flex;gap:12px;align-items:flex-start;padding:15px;margin:10px 0;border:1px solid rgba(194,161,232,.16);border-radius:13px;background:#1c1728}
-.notification-card.unread{border-color:rgba(194,161,232,.5);background:linear-gradient(110deg,rgba(119,87,150,.2),rgba(28,23,40,.95))}
-.notification-icon{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:12px;background:#3a2b4d;font-size:18px}
-.notification-body{flex:1;min-width:0}.notification-body strong{display:block;color:#f3eff7;margin-bottom:5px}.notification-body p{margin:0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.notification-time{display:block;margin-top:8px;color:#a99db6;font-size:11px}.notification-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.notification-actions button{font-size:11px}
-@media(max-width:420px){.notification-card{padding:12px;gap:9px}.notification-icon{width:32px;height:32px}}
-
-/* Referral dan Pusat Bantuan */
-.header-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.header-actions button{margin:0}
-.referral-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}.referral-summary-grid .card{margin:0}.referral-code{font-size:24px;font-weight:850;letter-spacing:.12em;color:#e5cff8;margin:12px 0;overflow-wrap:anywhere}.referral-link{font-size:12px;line-height:1.5;color:#d6c6e5;overflow-wrap:anywhere;margin:12px 0;min-height:36px}.referral-terms{background:#1c1728;border:1px solid rgba(194,161,232,.2);border-radius:13px;padding:15px;margin:16px 0}.referral-terms li{color:#d7cddd;line-height:1.6;margin:7px 0}.referral-row,.support-ticket{background:#1c1728;border:1px solid rgba(194,161,232,.17);border-radius:13px;padding:14px;margin:10px 0}.referral-row-top,.support-ticket-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.support-ticket{cursor:pointer}.support-ticket:hover{border-color:rgba(194,161,232,.5)}.support-status{font-size:11px;border-radius:20px;padding:5px 9px;background:#40334e;color:#e6d8f2}.support-status.closed{background:#294b3e;color:#bde4ce}.support-conversation{border:1px solid rgba(194,161,232,.2);border-radius:14px;padding:14px;margin-top:16px;background:#171321}.support-conversation-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.support-message-list{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding:12px 0}.support-message{max-width:88%;padding:11px 13px;border-radius:13px;background:#30243f;color:#f3eff7;overflow-wrap:anywhere;line-height:1.5}.support-message.user{align-self:flex-end;background:#284b42}.support-message.admin{align-self:flex-start;background:#30243f}.support-message small{display:block;margin-top:6px;font-size:10px;opacity:.75}.support-ticket-meta{font-size:12px;color:#a99db6;margin-top:7px}
-@media(max-width:520px){.header-actions{gap:5px}.header-actions button{font-size:11px;padding:9px 10px}.referral-summary-grid{grid-template-columns:1fr 1fr}.support-message{max-width:95%}}
-
-
-/* NAVIGASI TERPISAH: sidebar desktop dan menu bawah mobile */
-#dashboard{display:grid;grid-template-columns:228px minmax(0,1fr);gap:14px;align-items:start}
-#dashboard>.box:first-child{grid-column:1/-1;margin:0 0 2px}
-#dashboard>nav.sidebar{grid-column:1;grid-row:2;position:sticky;top:12px;display:flex;flex-direction:column;gap:5px;padding:13px;margin:0;border-radius:16px}
-#dashboard>nav.sidebar button{width:100%;min-width:0;flex:none;display:flex;align-items:center;gap:11px;text-align:left;margin:0;padding:11px 12px;border:1px solid transparent;background:transparent;color:#c9bfd4;font-size:12px;border-radius:10px}
-#dashboard>nav.sidebar button span{width:20px;text-align:center;font-size:17px;color:#d7c1ed}
-#dashboard>nav.sidebar button:hover,#dashboard>nav.sidebar button.active{background:linear-gradient(90deg,rgba(194,161,232,.2),rgba(194,161,232,.04));border-color:rgba(194,161,232,.24);color:#f3eff7}
-.sidebar-label{padding:9px 10px 5px;color:#9f91ad;font-size:9px;font-weight:800;letter-spacing:.13em}
-.sidebar-divider{height:1px;background:rgba(194,161,232,.16);margin:7px 3px}
-#dashboard>nav.sidebar button.sidebar-logout{color:#e5a4b3;margin-top:2px}
-#dashboard>.tab{grid-column:2;grid-row:auto;min-width:0;margin:0;padding:20px;border-radius:16px}
-#dashboard>.tab#campaigns{grid-column:2}
-.page-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
-.page-heading h2{margin:5px 0 7px}.page-heading p{margin:0;max-width:680px}
-.eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;color:#bda5d5}
-.feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
-.feature-tile{min-width:0;min-height:116px;margin:0;padding:16px;display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left;background:#1c1728;border:1px solid rgba(194,161,232,.2);color:#f3eff7;border-radius:14px}
-.feature-tile>span{font-size:22px;color:#d7c1ed}.feature-tile strong{font-size:13px}.feature-tile small{font-size:11px;color:#a99db6;font-weight:400}
-.mobile-bottom-nav{display:none}
-@media(max-width:760px){
- #dashboard{display:block;padding-bottom:82px}
- #dashboard>.box:first-child{margin:0 0 12px}
- #dashboard>nav.sidebar{display:none}
- #dashboard>.tab{margin:12px 0;padding:16px}
- #dashboard>.tab#campaigns{margin-top:0}
- .mobile-bottom-nav{position:fixed;z-index:5000;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:4px;padding:8px 7px calc(8px + env(safe-area-inset-bottom));background:rgba(29,23,40,.98);border-top:1px solid rgba(194,161,232,.25);backdrop-filter:blur(14px)}
- .mobile-bottom-nav button{flex:1;min-width:0;margin:0;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;color:#a99db6;border:1px solid transparent;font-size:18px}
- .mobile-bottom-nav button.active{background:rgba(194,161,232,.13);border-color:rgba(194,161,232,.2);color:#e5cff8}
- .mobile-bottom-nav button small{font-size:10px;color:inherit}
- .feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:380px){.feature-grid{grid-template-columns:1fr}.feature-tile{min-height:92px}}
-
-
-/* PERBAIKAN LOGIN: navigasi dashboard tidak boleh menutupi halaman masuk/daftar */
-body.auth-mode main{position:fixed!important;inset:0!important;z-index:10000!important;width:100%!important;height:100vh!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:12px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow-x:hidden!important;overflow-y:auto!important;isolation:isolate}
-body.auth-mode #auth,body.auth-mode #auth.box{position:relative!important;z-index:10002!important;display:block!important;visibility:visible!important;pointer-events:auto!important;width:min(100%,440px)!important;max-width:440px!important;max-height:calc(100dvh - 24px)!important;overflow-y:auto!important;margin:auto!important;flex:0 1 440px!important}
-body.auth-mode #auth *{pointer-events:auto}
-body.auth-mode .mobile-bottom-nav,body.auth-mode #dashboard{display:none!important;visibility:hidden!important;pointer-events:none!important}
-body.auth-mode #message{z-index:10003!important}
-body.auth-mode #auth input,body.auth-mode #auth button{position:relative;z-index:1;touch-action:manipulation}
-@media(max-width:500px){body.auth-mode main{padding:10px!important}body.auth-mode #auth.box{padding:18px!important;max-height:calc(100dvh - 20px)!important}}
-/* FIX LAYOUT HP: pastikan halaman dashboard bisa digulir penuh dan tidak terkurung */
-html, body { width:100%; min-height:100%; }
-body:not(.auth-mode) { height:auto!important; min-height:100dvh!important; overflow-x:hidden!important; overflow-y:auto!important; }
-body:not(.auth-mode) main { height:auto!important; min-height:0!important; overflow:visible!important; }
-body:not(.auth-mode) #dashboard { display:block!important; width:100%; max-width:1100px; min-height:0!important; height:auto!important; margin:0 auto!important; padding:0 0 calc(110px + env(safe-area-inset-bottom))!important; overflow:visible!important; }
-body:not(.auth-mode) #dashboard > .box:first-child { position:relative; width:100%; height:auto!important; min-height:0!important; overflow:hidden; }
-body:not(.auth-mode) #dashboard > nav.sidebar { display:none!important; }
-body:not(.auth-mode) #dashboard > .tab { display:block; position:relative!important; width:100%; height:auto!important; min-height:0!important; max-height:none!important; overflow:visible!important; margin:12px 0!important; }
-body:not(.auth-mode) #dashboard > .tab.hidden { display:none!important; }
-body:not(.auth-mode) .mobile-bottom-nav { position:fixed!important; z-index:5000!important; left:0!important; right:0!important; bottom:0!important; top:auto!important; width:100%!important; transform:none!important; }
-@media(min-width:761px) {
- body:not(.auth-mode) #dashboard { padding:18px 18px 110px!important; }
- body:not(.auth-mode) #dashboard > .tab { margin:12px 0!important; }
-}
 </style>
 </head>
 
@@ -280,9 +208,7 @@ body:not(.auth-mode) .mobile-bottom-nav { position:fixed!important; z-index:5000
 
 <header>
  <div class="logo">🏆 BLASTING JUARA</div>
- <div class="header-actions">
-  <div id="userLabel">Marketplace Campaign</div>
- </div>
+ <div id="userLabel">Marketplace Campaign</div>
 </header>
 
 <main>
@@ -330,27 +256,15 @@ body:not(.auth-mode) .mobile-bottom-nav { position:fixed!important; z-index:5000
   </div>
  </div>
 
- <nav class="box sidebar" aria-label="Navigasi utama">
-  <div class="sidebar-label">MENU UTAMA</div>
-  <button data-tab="campaigns" onclick="showTab('campaigns')"><span>▦</span> Marketplace Campaign</button>
-  <button data-tab="jobs" onclick="showTab('jobs')"><span>▣</span> Pekerjaan Saya</button>
-  <button data-tab="wallet" onclick="showTab('wallet')"><span>◈</span> Dompet & Transaksi</button>
-  <div class="sidebar-label">AKTIVITAS</div>
-  <button data-tab="whatsapp" onclick="showTab('whatsapp')"><span>◉</span> Tautkan WhatsApp</button>
-  <button data-tab="create" onclick="showTab('create')"><span>＋</span> Pasang Campaign</button>
-  <button data-tab="referral" onclick="showTab('referral')"><span>♧</span> Program Referral</button>
-  <button data-tab="spin" onclick="showTab('spin')"><span>✧</span> Spin Wheel</button>
-  <button data-tab="notifications" class="notification-bell" onclick="showTab('notifications')"><span>♢</span> Notifikasi <span id="notificationBadge" class="notification-count hidden">0</span></button>
-  <button data-tab="support" onclick="showTab('support')"><span>?</span> Pusat Bantuan</button>
-  <div class="sidebar-divider"></div>
-  <button id="adminButton" data-tab="admin" class="hidden" onclick="showTab('admin')"><span>♛</span> Panel Admin</button>
-  <button class="sidebar-logout" onclick="logout()"><span>↪</span> Keluar</button>
+ <nav class="box">
+  <button onclick="showTab('campaigns')">Campaign</button>
+  <button onclick="showTab('spin')">🎡 Spin Wheel</button>
+  <button onclick="showTab('whatsapp')">📱 WhatsApp</button>
+  <button onclick="showTab('wallet')">Saldo</button>
+  <button onclick="showTab('create')">Pasang Iklan</button>
+  <button id="adminButton" class="hidden" onclick="showTab('admin')">👑 ADMIN</button>
+  <button class="secondary" onclick="logout()">Keluar</button>
  </nav>
-
- <section id="jobs" class="box tab hidden">
-  <div class="page-heading"><div><span class="eyebrow">AKTIVITAS AKUN</span><h2>Pekerjaan Saya</h2><p>Pantau pekerjaan yang sudah kamu ambil, status persetujuan, dan kirim laporan dari halaman ini.</p></div></div>
-  <div id="jobList">Memuat pekerjaan...</div>
- </section>
 
  <section id="whatsapp" class="box tab hidden wa-box">
   <h2>📱 Tautkan WhatsApp</h2>
@@ -408,70 +322,6 @@ body:not(.auth-mode) .mobile-bottom-nav { position:fixed!important; z-index:5000
 
   <button id="waDisconnectButton" class="danger hidden" onclick="disconnectWhatsApp()">BATALKAN TAUTAN</button>
   <button class="secondary" onclick="loadWhatsAppStatus()">PERIKSA STATUS</button>
- </section>
-
- <section id="referral" class="box tab hidden">
-  <h2>🎁 Program Referral</h2>
-  <p>Undang teman untuk bergabung bersama Blasting Juara. Dapatkan bonus referral setelah teman yang Anda undang memenuhi persyaratan program.</p>
-  <div class="referral-summary-grid">
-   <div class="card"><small>Kode referral Anda</small><div id="myReferralCode" class="referral-code">Memuat...</div><button type="button" class="secondary" onclick="copyReferralCode()">Salin Kode</button></div>
-   <div class="card"><small>Link undangan</small><div id="myReferralLink" class="referral-link">Menyiapkan link...</div><button type="button" onclick="copyReferralLink()">Salin Link Undangan</button></div>
-   <div class="card"><small>Teman berhasil diundang</small><div id="referralTotal" class="money">0</div></div>
-   <div class="card"><small>Total bonus diterima</small><div id="referralEarnings" class="money">Rp 0</div></div>
-  </div>
-  <div class="referral-terms">
-   <h3>Ketentuan Program</h3>
-   <ul>
-    <li>Teman mendaftar menggunakan link referral Anda.</li>
-    <li>Teman menyelesaikan blast dengan minimal 20 chat berhasil.</li>
-    <li>Laporan blast harus diverifikasi dan disetujui oleh admin.</li>
-    <li>Bonus sebesar Rp5.000 diberikan satu kali untuk setiap akun referral yang memenuhi persyaratan.</li>
-    <li>Jumlah chat di atas 20 tidak menambah nominal bonus referral.</li>
-   </ul>
-  </div>
-  <h3>Riwayat Referral</h3>
-  <div id="referralHistory">Memuat riwayat referral...</div>
- </section>
-
- <section id="support" class="box tab hidden">
-  <h2>✦ Pusat Bantuan</h2>
-  <p>Silakan sampaikan pertanyaan atau kendala Anda. Tim Blasting Juara akan membantu melalui percakapan ini.</p>
-  <form id="supportTicketForm">
-   <label for="supportSubject">Topik bantuan</label>
-   <input id="supportSubject" maxlength="120" required placeholder="Contoh: Kendala penarikan saldo">
-   <label for="supportFirstMessage">Pesan Anda</label>
-   <textarea id="supportFirstMessage" rows="4" maxlength="3000" required placeholder="Jelaskan pertanyaan atau kendala Anda secara rinci..."></textarea>
-   <button id="supportCreateButton" type="submit">KIRIM PERMINTAAN BANTUAN</button>
-  </form>
-  <hr>
-  <h3>Riwayat Bantuan</h3>
-  <div id="supportTicketList">Memuat percakapan...</div>
-  <div id="supportConversation" class="support-conversation hidden">
-   <div class="support-conversation-head"><strong id="supportConversationTitle">Percakapan</strong><button class="secondary" type="button" onclick="closeSupportConversation()">Tutup</button></div>
-   <div id="supportMessageList" class="support-message-list"></div>
-   <form id="supportReplyForm"><textarea id="supportReplyText" rows="3" maxlength="3000" required placeholder="Tulis balasan Anda..."></textarea><button type="submit">KIRIM PESAN</button></form>
-  </div>
- </section>
-
- <section id="notifications" class="box tab hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-   <div><h2>🔔 Pusat Notifikasi</h2><p>Semua informasi terbaru tentang akun dan aktivitas kamu.</p></div>
-   <button class="secondary" type="button" onclick="markAllNotificationsRead()">Tandai semua dibaca</button>
-  </div>
-  <div id="notificationList">Memuat notifikasi...</div>
- </section>
-
- <section id="more" class="box tab hidden">
-  <div class="page-heading"><div><span class="eyebrow">PUSAT FITUR</span><h2>Fitur Lainnya</h2><p>Akses layanan dan pengaturan tambahan Blasting Juara.</p></div></div>
-  <div class="feature-grid">
-   <button class="feature-tile" onclick="showTab('whatsapp')"><span>◉</span><strong>Tautkan WhatsApp</strong><small>Kelola perangkat tertaut</small></button>
-   <button class="feature-tile" onclick="showTab('referral')"><span>♧</span><strong>Program Referral</strong><small>Kode undangan dan bonus</small></button>
-   <button class="feature-tile" onclick="showTab('spin')"><span>✧</span><strong>Spin Wheel</strong><small>Masukkan kode hadiah</small></button>
-   <button class="feature-tile" onclick="showTab('notifications')"><span>♢</span><strong>Notifikasi</strong><small>Informasi akun terbaru</small></button>
-   <button class="feature-tile" onclick="showTab('support')"><span>?</span><strong>Pusat Bantuan</strong><small>Hubungi tim bantuan</small></button>
-   <button class="feature-tile" onclick="showTab('create')"><span>＋</span><strong>Pasang Campaign</strong><small>Buat promosi baru</small></button>
-   <button id="moreAdminTile" class="feature-tile hidden" onclick="showTab('admin')"><span>♛</span><strong>Panel Admin</strong><small>Kelola operasional platform</small></button>
-  </div>
  </section>
 
  <section id="campaigns" class="box tab">
@@ -595,8 +445,6 @@ body:not(.auth-mode) .mobile-bottom-nav { position:fixed!important; z-index:5000
    <button onclick="adminTab('areports')">Laporan</button>
    <button onclick="adminTab('awithdrawals')">Penarikan</button>
    <button onclick="adminTab('aspin')">🎡 Kode Spin</button>
-   <button onclick="adminTab('anotifications')">🔔 Pengumuman</button>
-   <button onclick="adminTab('asupport')">✦ Pusat Bantuan</button>
   </nav>
 
   <div id="acampaigns" class="adminTab">
@@ -619,28 +467,6 @@ body:not(.auth-mode) .mobile-bottom-nav { position:fixed!important; z-index:5000
    <div id="adminWithdrawalList">Memuat...</div>
   </div>
 
-  <div id="anotifications" class="adminTab hidden">
-   <h3>🔔 Kirim Pengumuman</h3>
-   <p>Pengumuman ini akan muncul di pusat notifikasi seluruh pengguna.</p>
-   <form id="broadcastNotificationForm">
-    <label>Judul pengumuman</label>
-    <input id="broadcastTitle" maxlength="100" required placeholder="Contoh: Informasi maintenance">
-    <label>Isi pengumuman</label>
-    <textarea id="broadcastMessage" maxlength="1000" required placeholder="Tulis informasi untuk semua pengguna..."></textarea>
-    <button type="submit">KIRIM KE SEMUA PENGGUNA</button>
-   </form>
-  </div>
-
-  <div id="asupport" class="adminTab hidden">
-   <h3>✦ Permintaan Bantuan Pengguna</h3>
-   <div id="adminSupportTicketList">Memuat permintaan bantuan...</div>
-   <div id="adminSupportConversation" class="support-conversation hidden">
-    <div class="support-conversation-head"><strong id="adminSupportConversationTitle">Percakapan pengguna</strong><button class="secondary" type="button" onclick="closeAdminSupportConversation()">Tutup</button></div>
-    <div id="adminSupportMessageList" class="support-message-list"></div>
-    <form id="adminSupportReplyForm"><textarea id="adminSupportReplyText" rows="3" maxlength="3000" required placeholder="Tulis balasan untuk pengguna..."></textarea><button type="submit">KIRIM BALASAN</button><button type="button" class="secondary" onclick="setAdminSupportStatus('closed')">Tandai Selesai</button><button type="button" class="secondary" onclick="setAdminSupportStatus('open')">Buka Kembali</button></form>
-   </div>
-  </div>
-
   <div id="aspin" class="adminTab hidden">
    <h3>🎡 Kelola Kode Spin</h3>
    <form id="spinCodeForm" class="spin-admin-form">
@@ -657,13 +483,6 @@ body:not(.auth-mode) .mobile-bottom-nav { position:fixed!important; z-index:5000
 
   <button class="secondary" onclick="loadAdmin()">🔄 Refresh Data Admin</button>
  </section>
-
- <nav class="mobile-bottom-nav" aria-label="Navigasi utama bawah">
-  <button data-tab="campaigns" onclick="showTab('campaigns')"><span>▦</span><small>Campaign</small></button>
-  <button data-tab="jobs" onclick="showTab('jobs')"><span>▣</span><small>Pekerjaan</small></button>
-  <button data-tab="wallet" onclick="showTab('wallet')"><span>◈</span><small>E-Wallet</small></button>
-  <button data-tab="more" onclick="showTab('more')"><span>☰</span><small>Lainnya</small></button>
- </nav>
 </section>
 </main>
 
@@ -694,11 +513,6 @@ let pendingWithdrawalId = null;
 let pendingWithdrawalStatus = null;
 let withdrawalProcessing = false;
 let currentWaMethod = "qr";
-let notificationUnreadCount = 0;
-let activeSupportTicketId = null;
-let activeAdminSupportTicketId = null;
-let activeAdminSupportUserId = null;
-const referralCodeFromUrl = (new URLSearchParams(window.location.search).get("ref") || "").trim().toUpperCase();
 
 const $ = id => document.getElementById(id);
 
@@ -798,25 +612,21 @@ async function signInWithGoogle() {
 }
 
 function showTab(id) {
- const target = $(id);
- if (!target) {
-  console.warn("Halaman tidak ditemukan:", id);
-  return;
- }
- document.querySelectorAll("#dashboard .tab").forEach(element => element.classList.add("hidden"));
- target.classList.remove("hidden");
- document.querySelectorAll("#dashboard nav button[data-tab]").forEach(button => {
-  button.classList.toggle("active", button.dataset.tab === id);
+ document.querySelectorAll(".tab").forEach(element => {
+  element.classList.add("hidden");
  });
+
+ $(id).classList.remove("hidden");
+ document.querySelectorAll("#dashboard > nav button").forEach(button => button.classList.remove("active"));
+ const activeButton = document.querySelector('#dashboard > nav button[onclick="showTab(\'' + id + '\')"]');
+ if (activeButton) activeButton.classList.add("active");
 
  if (id === "campaigns") loadCampaigns();
  if (id === "jobs") loadJobs();
  if (id === "spin") { drawSpinWheel(); loadSpinHistory(); }
  if (id === "wallet") loadWallet();
- if (id === "notifications") loadNotifications();
- if (id === "referral") loadReferral();
- if (id === "support") loadSupportTickets();
  if (id === "whatsapp") loadWhatsAppStatus();
+
  if (id === "admin") {
   if (!isAdmin) {
    notify("Akses admin ditolak.");
@@ -839,191 +649,7 @@ function adminTab(id) {
  if (id === "areports") loadAdminReports();
  if (id === "awithdrawals") loadAdminWithdrawals();
  if (id === "aspin") loadAdminSpinCodes();
- if (id === "anotifications") {}
- if (id === "asupport") loadAdminSupportTickets();
 }
-
-// =========================
-// PUSAT NOTIFIKASI
-// =========================
-function notificationIcon(type) {
- const icons = {success:"✓",warning:"!",wallet:"💰",info:"🔔"};
- return icons[type] || "🔔";
-}
-
-async function refreshNotificationBadge() {
- if (!user) return;
- const {count,error} = await db.from("notifications")
-  .select("id",{count:"exact",head:true})
-  .eq("user_id",user.id)
-  .eq("is_read",false);
- if (error) { console.warn("Badge notifikasi:",error.message); return; }
- notificationUnreadCount = count || 0;
- const badge = $("notificationBadge");
- badge.textContent = notificationUnreadCount > 99 ? "99+" : String(notificationUnreadCount);
- badge.classList.toggle("hidden",notificationUnreadCount < 1);
-}
-
-async function loadNotifications() {
- if (!user) return;
- const box = $("notificationList");
- box.textContent = "Memuat notifikasi...";
- const {data,error} = await db.from("notifications")
-  .select("id,title,message,type,is_read,is_broadcast,created_at")
-  .eq("user_id",user.id)
-  .order("created_at",{ascending:false}).limit(100);
- if (error) { box.textContent = "Notifikasi belum dapat dimuat: " + error.message; return; }
- if (!data || !data.length) {
-  box.innerHTML = '<div class="transaction-empty">Belum ada notifikasi. Informasi terbaru akan muncul di sini.</div>';
-  await refreshNotificationBadge();
-  return;
- }
- box.innerHTML = data.map(item => `
-  <article class="notification-card ${item.is_read ? "" : "unread"}">
-   <div class="notification-icon">${notificationIcon(escapeHTML(item.type))}</div>
-   <div class="notification-body">
-    <strong>${escapeHTML(item.title)}${item.is_broadcast ? ' <small>• Pengumuman</small>' : ''}</strong>
-    <p>${escapeHTML(item.message)}</p>
-    <span class="notification-time">${escapeHTML(dateTime(item.created_at))}</span>
-    ${item.is_read ? '' : `<button class="secondary" type="button" onclick="markNotificationRead('${item.id}')">Tandai dibaca</button>`}
-   </div>
-  </article>`).join("");
- await refreshNotificationBadge();
-}
-
-async function markNotificationRead(id) {
- const {error} = await db.from("notifications").update({is_read:true}).eq("id",id).eq("user_id",user.id);
- if (error) { notify("Gagal memperbarui notifikasi: " + error.message); return; }
- await loadNotifications();
-}
-
-async function markAllNotificationsRead() {
- if (!user) return;
- const {error} = await db.from("notifications").update({is_read:true}).eq("user_id",user.id).eq("is_read",false);
- if (error) { notify("Gagal menandai notifikasi: " + error.message); return; }
- await loadNotifications();
- notify("Semua notifikasi pribadi sudah ditandai dibaca.");
-}
-
-async function sendBroadcastNotification(event) {
- event.preventDefault();
- if (!isAdmin) { notify("Akses admin ditolak."); return; }
- const title = $("broadcastTitle").value.trim();
- const message = $("broadcastMessage").value.trim();
- if (!title || !message) { notify("Judul dan isi pengumuman wajib diisi."); return; }
- const button = event.submitter || $("broadcastNotificationForm").querySelector("button[type=submit]");
- button.disabled = true; button.textContent = "MENGIRIM...";
- const {data,error} = await db.rpc("admin_broadcast_notification", {
-  p_title:title,
-  p_message:message
- });
- button.disabled = false; button.textContent = "KIRIM KE SEMUA PENGGUNA";
- if (error) { notify("Pengumuman gagal dikirim: " + error.message); return; }
- $("broadcastNotificationForm").reset();
- notify("Pengumuman berhasil dikirim ke " + Number(data || 0) + " pengguna.");
-}
-
-$("broadcastNotificationForm").addEventListener("submit",sendBroadcastNotification);
-
-// =========================
-// REFERRAL
-// =========================
-async function initializeReferral() {
- if (!user) return;
- const {error:ensureError} = await db.rpc("ensure_my_referral_profile");
- if (ensureError) console.warn("Referral profile:",ensureError.message);
- const code = String(user.user_metadata?.referral_code || referralCodeFromUrl || "").trim().toUpperCase();
- if (code) {
-  const {data,error} = await db.rpc("register_my_referral",{p_referral_code:code});
-  if (error) console.warn("Attribution referral:",error.message);
-  else if (data?.registered) notify("Kode undangan berhasil diterapkan.");
- }
-}
-
-async function loadReferral() {
- if (!user) return;
- const codeBox = $("myReferralCode");
- const linkBox = $("myReferralLink");
- codeBox.textContent = "Memuat...";
- const {data:profile,error:profileError} = await db.from("referral_codes").select("code").eq("user_id",user.id).maybeSingle();
- if (profileError) { codeBox.textContent = "Belum tersedia"; $("referralHistory").textContent = "Gagal memuat referral: "+profileError.message; return; }
- if (!profile?.code) { codeBox.textContent = "Menyiapkan kode..."; await initializeReferral(); return loadReferral(); }
- codeBox.textContent = profile.code;
- linkBox.textContent = window.location.origin + window.location.pathname + "?ref=" + encodeURIComponent(profile.code);
- const {data:rows,error} = await db.from("referrals").select("id,referred_user_id,status,reward_amount,created_at,rewarded_at").eq("referrer_id",user.id).order("created_at",{ascending:false});
- if (error) { $("referralHistory").textContent = "Gagal memuat riwayat: " + error.message; return; }
- const referrals = rows || [];
- const rewarded = referrals.filter(x=>x.status === "rewarded");
- $("referralTotal").textContent = String(rewarded.length);
- $("referralEarnings").textContent = rupiah(rewarded.reduce((sum,x)=>sum+Number(x.reward_amount||0),0));
- if (!referrals.length) { $("referralHistory").innerHTML='<div class="transaction-empty">Belum ada teman yang bergabung melalui kode referral Anda.</div>'; return; }
- $("referralHistory").innerHTML = referrals.map((item,index)=>{
-  const status = item.status === "rewarded" ? "Bonus diberikan" : "Menunggu persyaratan";
-  const statusClass = item.status === "rewarded" ? "status-success" : "status-pending";
-  return `<div class="referral-row"><div class="referral-row-top"><strong>Undangan #${referrals.length-index}</strong><span class="${statusClass}">${status}</span></div><div class="support-ticket-meta">Bergabung: ${escapeHTML(dateTime(item.created_at))}</div><div class="support-ticket-meta">Bonus: ${rupiah(item.reward_amount||0)}</div></div>`;
- }).join("");
-}
-function copyReferralCode(){const v=$("myReferralCode").textContent;if(!v||v==="Memuat..."||v==="Belum tersedia")return;copyText(v,"Kode referral berhasil disalin.");}
-function copyReferralLink(){const v=$("myReferralLink").textContent;if(!v||v==="Menyiapkan link...")return;copyText(v,"Link undangan berhasil disalin.");}
-function copyText(value,message){if(navigator.clipboard?.writeText){navigator.clipboard.writeText(value).then(()=>notify(message)).catch(()=>{prompt("Salin teks berikut:",value);});}else{prompt("Salin teks berikut:",value);}}
-
-// =========================
-// PUSAT BANTUAN PENGGUNA
-// =========================
-async function loadSupportTickets(){
- if(!user)return;
- const box=$("supportTicketList");box.textContent="Memuat percakapan...";
- const {data,error}=await db.from("support_tickets").select("id,subject,status,created_at,updated_at").eq("user_id",user.id).order("updated_at",{ascending:false});
- if(error){box.textContent="Pusat Bantuan belum dapat dimuat: "+error.message;return;}
- if(!data?.length){box.innerHTML='<div class="transaction-empty">Belum ada percakapan bantuan. Silakan buat permintaan bantuan jika membutuhkan dukungan.</div>';return;}
- box.innerHTML=data.map(t=>`<div class="support-ticket" onclick="openSupportConversation('${t.id}')"><div class="support-ticket-top"><strong>${escapeHTML(t.subject)}</strong><span class="support-status ${t.status==='closed'?'closed':''}">${t.status==='closed'?'Selesai':'Dalam proses'}</span></div><div class="support-ticket-meta">Dibuat: ${escapeHTML(dateTime(t.created_at))}</div><div class="support-ticket-meta">Pilih untuk melihat percakapan</div></div>`).join("");
-}
-async function createSupportTicket(event){
- event.preventDefault();if(!user)return;
- const subject=$("supportSubject").value.trim(),message=$("supportFirstMessage").value.trim();if(!subject||!message)return;
- const btn=$("supportCreateButton");btn.disabled=true;btn.textContent="MENGIRIM...";
- try{
-  const {data:ticket,error}=await db.from("support_tickets").insert({user_id:user.id,subject,status:"open"}).select("id").single();if(error)throw error;
-  const {error:msgError}=await db.from("support_messages").insert({ticket_id:ticket.id,sender_id:user.id,sender_role:"user",message});if(msgError)throw msgError;
-  $("supportTicketForm").reset();await loadSupportTickets();await openSupportConversation(ticket.id);notify("Permintaan bantuan berhasil dikirim.");
- }catch(e){notify("Pesan belum dapat dikirim: "+e.message);}finally{btn.disabled=false;btn.textContent="KIRIM PERMINTAAN BANTUAN";}
-}
-async function openSupportConversation(id){
- activeSupportTicketId=id;$("supportConversation").classList.remove("hidden");$("supportMessageList").textContent="Memuat pesan...";
- const {data:ticket,error:ticketError}=await db.from("support_tickets").select("id,subject,status").eq("id",id).eq("user_id",user.id).single();if(ticketError){notify(ticketError.message);return;}
- $("supportConversationTitle").textContent=ticket.subject+(ticket.status==='closed'?' · Selesai':'');
- const {data,error}=await db.from("support_messages").select("id,sender_id,sender_role,message,created_at").eq("ticket_id",id).order("created_at",{ascending:true});if(error){$("supportMessageList").textContent=error.message;return;}
- renderSupportMessages("supportMessageList",data||[]);
-}
-function renderSupportMessages(container,messages){
- const box=$(container);if(!messages.length){box.innerHTML='<div class="transaction-empty">Belum ada pesan.</div>';return;}
- box.innerHTML=messages.map(m=>`<div class="support-message ${m.sender_role==='admin'?'admin':'user'}"><strong>${m.sender_role==='admin'?'Tim Bantuan':'Anda'}</strong><div>${escapeHTML(m.message).replace(/\n/g,'<br>')}</div><small>${escapeHTML(dateTime(m.created_at))}</small></div>`).join("");box.scrollTop=box.scrollHeight;
-}
-async function sendSupportReply(event){event.preventDefault();if(!activeSupportTicketId||!user)return;const message=$("supportReplyText").value.trim();if(!message)return;
- const {error}=await db.from("support_messages").insert({ticket_id:activeSupportTicketId,sender_id:user.id,sender_role:"user",message});if(error){notify("Pesan belum dapat dikirim: "+error.message);return;}$("supportReplyForm").reset();await openSupportConversation(activeSupportTicketId);await loadSupportTickets();}
-function closeSupportConversation(){activeSupportTicketId=null;$("supportConversation").classList.add("hidden");}
-
-// =========================
-// PUSAT BANTUAN ADMIN
-// =========================
-async function loadAdminSupportTickets(){
- if(!isAdmin)return;const box=$("adminSupportTicketList");box.textContent="Memuat permintaan bantuan...";
- const {data,error}=await db.from("support_tickets").select("id,user_id,subject,status,created_at,updated_at").order("updated_at",{ascending:false});if(error){box.textContent=error.message;return;}
- if(!data?.length){box.innerHTML='<div class="transaction-empty">Belum ada permintaan bantuan.</div>';return;}
- box.innerHTML=data.map(t=>`<div class="support-ticket" onclick="openAdminSupportConversation('${t.id}','${t.user_id}')"><div class="support-ticket-top"><strong>${escapeHTML(t.subject)}</strong><span class="support-status ${t.status==='closed'?'closed':''}">${t.status==='closed'?'Selesai':'Dalam proses'}</span></div><div class="support-ticket-meta">Pengguna: ${escapeHTML(t.user_id)}</div><div class="support-ticket-meta">Diperbarui: ${escapeHTML(dateTime(t.updated_at))}</div></div>`).join("");
-}
-async function openAdminSupportConversation(id,userId){activeAdminSupportTicketId=id;activeAdminSupportUserId=userId;$("adminSupportConversation").classList.remove("hidden");$("adminSupportMessageList").textContent="Memuat pesan...";
- const {data:ticket,error:te}=await db.from("support_tickets").select("subject,status").eq("id",id).single();if(te){notify(te.message);return;}$("adminSupportConversationTitle").textContent=ticket.subject+" · "+(ticket.status==='closed'?'Selesai':'Dalam proses');
- const {data,error}=await db.from("support_messages").select("id,sender_id,sender_role,message,created_at").eq("ticket_id",id).order("created_at",{ascending:true});if(error){$("adminSupportMessageList").textContent=error.message;return;}renderSupportMessages("adminSupportMessageList",data||[]);
-}
-async function sendAdminSupportReply(event){event.preventDefault();if(!isAdmin||!activeAdminSupportTicketId)return;const message=$("adminSupportReplyText").value.trim();if(!message)return;
- const {error}=await db.from("support_messages").insert({ticket_id:activeAdminSupportTicketId,sender_id:user.id,sender_role:"admin",message});if(error){notify("Balasan belum dapat dikirim: "+error.message);return;}$("adminSupportReplyForm").reset();await openAdminSupportConversation(activeAdminSupportTicketId);await loadAdminSupportTickets();notify("Balasan berhasil dikirim.");}
-async function setAdminSupportStatus(status){if(!isAdmin||!activeAdminSupportTicketId)return;const {error}=await db.from("support_tickets").update({status}).eq("id",activeAdminSupportTicketId);if(error){notify(error.message);return;}await openAdminSupportConversation(activeAdminSupportTicketId);await loadAdminSupportTickets();notify(status==='closed'?"Percakapan ditandai selesai.":"Percakapan dibuka kembali.");}
-function closeAdminSupportConversation(){activeAdminSupportTicketId=null;activeAdminSupportUserId=null;$("adminSupportConversation").classList.add("hidden");}
-
-$("supportTicketForm").addEventListener("submit",createSupportTicket);
-$("supportReplyForm").addEventListener("submit",sendSupportReply);
-$("adminSupportReplyForm").addEventListener("submit",sendAdminSupportReply);
 
 // =========================
 // WHATSAPP API
@@ -1720,7 +1346,6 @@ async function checkAdmin() {
 
  if (isAdmin) {
   $("adminButton").classList.remove("hidden");
-  $("moreAdminTile")?.classList.remove("hidden");
  }
 }
 
@@ -1734,16 +1359,13 @@ async function openDashboard() {
  hideAll();
 
  $("dashboard").classList.remove("hidden");
- $("supportTopButton").classList.remove("hidden");
  $("userLabel").textContent = user.email || "";
- refreshNotificationBadge();
 
  $("welcome").textContent =
   "Selamat datang, " +
   (user.user_metadata?.full_name || user.email || "");
 
  await checkAdmin();
- await initializeReferral();
 
  showTab("campaigns");
 
@@ -1804,7 +1426,7 @@ $("authForm").onsubmit = async event => {
     email,
     password,
     options: {
-     data: { full_name: fullName, referral_code: referralCodeFromUrl || null },
+     data: { full_name: fullName },
      emailRedirectTo: window.location.origin + window.location.pathname
     }
    });
@@ -1851,7 +1473,6 @@ async function logout() {
  authPage("login");
 
  $("userLabel").textContent = "Marketplace Campaign";
- $("supportTopButton").classList.add("hidden");
  $("adminButton").classList.add("hidden");
 
  $("waQrImage").removeAttribute("src");
@@ -2891,8 +2512,9 @@ db.auth.onAuthStateChange((event, session) => {
 // =========================
 
 start();
-setInterval(() => { if (user) refreshNotificationBadge(); }, 45000);
 
 </script>
 </body>
 </html>
+
+
