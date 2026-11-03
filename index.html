@@ -748,7 +748,7 @@ function showTab(id) {
  if (id === "campaigns") loadCampaigns();
  if (id === "jobs") loadJobs();
  if (id === "spin") { drawSpinWheel(); loadSpinHistory(); }
- if (id === "wallet") loadWallet();
+ if (id === "wallet") loadWallet(true);
  if (id === "notifications") loadNotifications();
  if (id === "referral") loadReferral();
  if (id === "support") loadSupportTickets();
@@ -1444,7 +1444,7 @@ function startWaPolling() {
   } finally {
    waPollingNow = false;
   }
- }, 1000);
+ }, 4000);
 }
 
 function stopWaPolling() {
@@ -1670,41 +1670,32 @@ async function openDashboard() {
  }
 
  hideAll();
-
  $("dashboard").classList.remove("hidden");
  $("supportTopButton").classList.remove("hidden");
  $("userLabel").textContent = user.email || "";
- refreshNotificationBadge();
-
  $("welcome").textContent =
   "Selamat datang, " +
   (user.user_metadata?.full_name || user.email || "");
 
- await checkAdmin();
- const totalUsersCard = $("adminTotalUsersCard");
- if (isAdmin) {
-  totalUsersCard.classList.remove("hidden");
-  await refreshAdminTotalUsers();
- } else {
-  totalUsersCard.classList.add("hidden");
- }
- await initializeReferral();
-
+ // Tampilkan menu utama terlebih dahulu; data tambahan dimuat di latar belakang.
  showTab("campaigns");
+ loadWallet(false);
+ loadJobs();
+ loadWhatsAppStatus();
 
- const tasks = [
-  loadWallet(),
-  loadJobs(),
-  loadWhatsAppStatus()
- ];
-
- const results = await Promise.allSettled(tasks);
-
- results.forEach((result, index) => {
-  if (result.status === "rejected") {
-   console.error("Dashboard task " + index, result.reason);
+ // Pemeriksaan admin dan referral tidak perlu menahan tampilan dashboard.
+ checkAdmin().then(async () => {
+  const totalUsersCard = $("adminTotalUsersCard");
+  if (isAdmin) {
+   totalUsersCard.classList.remove("hidden");
+   refreshAdminTotalUsers();
+  } else {
+   totalUsersCard.classList.add("hidden");
   }
- });
+ }).catch(error => console.warn("Check admin:", error));
+
+ initializeReferral().catch(error => console.warn("Referral:", error));
+ refreshNotificationBadge().catch(error => console.warn("Notifikasi:", error));
 }
 
 $("authForm").onsubmit = async event => {
@@ -2229,7 +2220,7 @@ $("spinCodeForm").onsubmit = async event => {
 // DOMPET
 // =========================
 
-async function loadWallet() {
+async function loadWallet(includeHistory = true) {
  if (!user) return;
 
  const {data, error} = await db.from("wallets")
@@ -2246,8 +2237,9 @@ async function loadWallet() {
  $("walletDetail").textContent =
   "Saldo tersedia: " + rupiah(data?.balance || 0);
 
- await loadWithdrawHistory();
- await loadTransactionHistory();
+ if (includeHistory) {
+  await Promise.all([loadWithdrawHistory(), loadTransactionHistory()]);
+ }
 }
 
 async function loadWithdrawHistory() {
@@ -3007,7 +2999,7 @@ db.auth.onAuthStateChange((event, session) => {
 // =========================
 
 start();
-setInterval(() => { if (user) refreshNotificationBadge(); }, 45000);
+setInterval(() => { if (user) refreshNotificationBadge(); }, 90000);
 
 </script>
 </body>
