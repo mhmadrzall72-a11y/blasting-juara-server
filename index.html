@@ -157,6 +157,17 @@ body.auth-mode #auth,body.auth-mode #auth.box{display:block!important;flex:0 1 4
 body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;z-index:10000!important;}
 @media(max-width:500px){body.auth-mode main{padding:12px!important;}body.auth-mode #auth.box{padding:20px!important;max-height:calc(100dvh - 24px);}}
 
+
+/* ADMIN USER MANAGEMENT */
+.admin-user-tools{display:grid;grid-template-columns:minmax(0,2fr) minmax(130px,1fr);gap:10px;align-items:center;margin:14px 0}
+.admin-user-tools input,.admin-user-tools select{margin:0}
+.admin-user-card{display:flex;flex-direction:column;gap:8px;margin:10px 0;padding:15px;border:1px solid rgba(194,161,232,.2);border-radius:13px;background:rgba(10,8,18,.24);overflow-wrap:anywhere}
+.admin-user-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-user-actions{display:flex;gap:7px;flex-wrap:wrap}.admin-user-actions button{margin:0}
+.admin-user-status{font-size:12px;font-weight:800;padding:5px 9px;border-radius:20px;background:#344239;color:#bde5ca}.admin-user-status.off{background:#4b202b;color:#ffc0ca}
+.admin-user-meta{font-size:13px;color:var(--bj-muted);line-height:1.5}
+@media(max-width:500px){.admin-user-tools{grid-template-columns:1fr}}
+
 </style>
 </head>
 
@@ -402,6 +413,11 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 
   <div class="grid">
    <div class="card">
+    <small>Total Pengguna</small>
+    <div class="money" id="adminUserCount">0</div>
+    <small id="adminUserActiveCount">0 aktif · 0 nonaktif</small>
+   </div>
+   <div class="card">
     <small>Total Campaign</small>
     <div class="money" id="adminCampaignCount">0</div>
    </div>
@@ -425,6 +441,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <button onclick="adminTab('areports')">Laporan</button>
    <button onclick="adminTab('awithdrawals')">Penarikan</button>
    <button onclick="adminTab('aspin')">🎡 Kode Spin</button>
+   <button onclick="adminTab('ausers')">👥 Pengguna</button>
   </nav>
 
   <div id="acampaigns" class="adminTab">
@@ -445,6 +462,20 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
   <div id="awithdrawals" class="adminTab hidden">
    <h3>💰 Kelola Penarikan</h3>
    <div id="adminWithdrawalList">Memuat...</div>
+  </div>
+
+  <div id="ausers" class="adminTab hidden">
+   <h3>👥 Manajemen Pengguna</h3>
+   <p>Kelola akun pengguna. Nonaktifkan akun yang sudah tidak digunakan; riwayat saldo dan pekerjaan tetap tersimpan.</p>
+   <div class="admin-user-tools">
+    <input id="adminUserSearch" type="search" placeholder="Cari nama atau email pengguna..." oninput="renderAdminUsers()">
+    <select id="adminUserFilter" onchange="renderAdminUsers()">
+     <option value="all">Semua status</option>
+     <option value="active">Aktif</option>
+     <option value="inactive">Nonaktif</option>
+    </select>
+   </div>
+   <div id="adminUserList">Memuat pengguna...</div>
   </div>
 
   <div id="aspin" class="adminTab hidden">
@@ -481,6 +512,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let user = null;
 let isAdmin = false;
+let adminUsersCache = [];
 let whatsappConnected = false;
 let waPollTimer = null;
 let waPollingNow = false;
@@ -629,6 +661,7 @@ function adminTab(id) {
  if (id === "areports") loadAdminReports();
  if (id === "awithdrawals") loadAdminWithdrawals();
  if (id === "aspin") loadAdminSpinCodes();
+ if (id === "ausers") loadAdminUsers();
 }
 
 // =========================
@@ -1330,12 +1363,29 @@ async function checkAdmin() {
 }
 
 async function openDashboard() {
- document.body.classList.remove("auth-mode");
  if (!user) {
   notify("Silakan login terlebih dahulu.");
   return;
  }
 
+ const {data: accountProfile, error: accountError} = await db.from("profiles")
+  .select("is_active")
+  .eq("id", user.id)
+  .maybeSingle();
+ if (accountError) {
+  console.error("Pemeriksaan status akun:", accountError);
+  notify("Tidak dapat memeriksa status akun: " + accountError.message);
+  return;
+ }
+ if (accountProfile?.is_active === false) {
+  await db.auth.signOut();
+  user = null;
+  authPage("login");
+  notify("Akun kamu sedang dinonaktifkan oleh admin.");
+  return;
+ }
+
+ document.body.classList.remove("auth-mode");
  hideAll();
 
  $("dashboard").classList.remove("hidden");
@@ -2116,7 +2166,8 @@ async function loadAdmin() {
   loadAdminCampaigns(),
   loadAdminApplications(),
   loadAdminReports(),
-  loadAdminWithdrawals()
+  loadAdminWithdrawals(),
+  loadAdminUsers()
  ]);
 }
 
@@ -2149,6 +2200,93 @@ function adminCard(container, title, details, buttons = []) {
 
 function adminError(container, error) {
  $(container).textContent = error.message;
+}
+
+// =========================
+// ADMIN PENGGUNA
+// =========================
+
+async function loadAdminUsers() {
+ if (!isAdmin) return;
+ const box = $("adminUserList");
+ if (box) box.textContent = "Memuat pengguna...";
+ try {
+  const {data, error} = await db.rpc("admin_list_users");
+  if (error) throw error;
+  adminUsersCache = Array.isArray(data) ? data : [];
+  const active = adminUsersCache.filter(item => item.is_active !== false).length;
+  const inactive = adminUsersCache.length - active;
+  $("adminUserCount").textContent = adminUsersCache.length.toLocaleString("id-ID");
+  $("adminUserActiveCount").textContent = active.toLocaleString("id-ID") + " aktif · " + inactive.toLocaleString("id-ID") + " nonaktif";
+  renderAdminUsers();
+ } catch (error) {
+  console.error("Daftar pengguna:", error);
+  if (box) box.textContent = "Gagal memuat pengguna: " + error.message + ". Pastikan SQL Manajemen Pengguna sudah dijalankan.";
+ }
+}
+
+function renderAdminUsers() {
+ const box = $("adminUserList");
+ if (!box) return;
+ box.replaceChildren();
+ const query = ($("adminUserSearch")?.value || "").trim().toLowerCase();
+ const filter = $("adminUserFilter")?.value || "all";
+ const rows = adminUsersCache.filter(item => {
+  const active = item.is_active !== false;
+  if (filter === "active" && !active) return false;
+  if (filter === "inactive" && active) return false;
+  const haystack = [item.full_name, item.email, item.role].join(" ").toLowerCase();
+  return !query || haystack.includes(query);
+ });
+ if (!rows.length) {
+  box.textContent = adminUsersCache.length ? "Tidak ada pengguna yang cocok dengan pencarian." : "Belum ada pengguna terdaftar.";
+  return;
+ }
+ rows.forEach(item => {
+  const active = item.is_active !== false;
+  const card = document.createElement("article");
+  card.className = "admin-user-card";
+  const head = document.createElement("div");
+  head.className = "admin-user-head";
+  const title = document.createElement("strong");
+  title.textContent = item.full_name || "Tanpa nama";
+  const status = document.createElement("span");
+  status.className = "admin-user-status" + (active ? "" : " off");
+  status.textContent = active ? "AKTIF" : "NONAKTIF";
+  head.append(title, status);
+  const meta = document.createElement("div");
+  meta.className = "admin-user-meta";
+  const joined = item.created_at ? new Date(item.created_at).toLocaleString("id-ID", {dateStyle:"medium",timeStyle:"short"}) : "Tidak diketahui";
+  meta.textContent = (item.email || "Email tidak tersedia") + " · Peran: " + (item.role || "user") + " · Bergabung: " + joined;
+  const actions = document.createElement("div");
+  actions.className = "admin-user-actions";
+  const button = document.createElement("button");
+  button.className = active ? "danger" : "success";
+  button.textContent = active ? "NONAKTIFKAN AKUN" : "AKTIFKAN KEMBALI";
+  button.disabled = item.user_id === user?.id && active;
+  button.onclick = () => setAdminUserActive(item.user_id, !active, item.email || item.full_name || "pengguna ini");
+  actions.append(button);
+  card.append(head, meta, actions);
+  box.append(card);
+ });
+}
+
+async function setAdminUserActive(userId, makeActive, label) {
+ if (!isAdmin) { notify("Akses admin ditolak."); return; }
+ if (!userId || userId === user?.id && !makeActive) { notify("Akun admin yang sedang digunakan tidak dapat dinonaktifkan."); return; }
+ const promptText = makeActive
+  ? "Aktifkan kembali akun " + label + "?"
+  : "Nonaktifkan akun " + label + "? Pengguna tidak dapat masuk ke aplikasi, tetapi riwayat saldo dan pekerjaannya tetap tersimpan.";
+ if (!window.confirm(promptText)) return;
+ try {
+  const {error} = await db.rpc("admin_set_user_active", {p_user_id:userId,p_is_active:makeActive});
+  if (error) throw error;
+  notify(makeActive ? "Akun berhasil diaktifkan kembali." : "Akun berhasil dinonaktifkan.");
+  await loadAdminUsers();
+ } catch (error) {
+  console.error("Ubah status pengguna:", error);
+  notify("Gagal mengubah status akun: " + error.message);
+ }
 }
 
 // =========================
