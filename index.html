@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -270,6 +272,11 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <div class="card">
     <small>Job saya</small>
     <div id="jobCount" class="money">0</div>
+   </div>
+   <div id="adminTotalUsersCard" class="card hidden">
+    <small>👥 Total Pengguna</small>
+    <div id="adminTotalUsers" class="money">—</div>
+    <small>Seluruh akun terdaftar</small>
    </div>
   </div>
  </div>
@@ -1663,6 +1670,13 @@ async function openDashboard() {
   (user.user_metadata?.full_name || user.email || "");
 
  await checkAdmin();
+ const totalUsersCard = $("adminTotalUsersCard");
+ if (isAdmin) {
+  totalUsersCard.classList.remove("hidden");
+  await refreshAdminTotalUsers();
+ } else {
+  totalUsersCard.classList.add("hidden");
+ }
  await initializeReferral();
 
  showTab("campaigns");
@@ -2498,12 +2512,31 @@ async function adminApi(path, method = "GET", body = null) {
  return result;
 }
 
+async function refreshAdminTotalUsers(result = null) {
+ if (!isAdmin) return;
+ const card = $("adminTotalUsersCard");
+ const value = $("adminTotalUsers");
+ if (card) card.classList.remove("hidden");
+ if (!value) return;
+ try {
+  const data = result || await adminApi("/admin/users");
+  const total = Number.isFinite(Number(data.count))
+   ? Number(data.count)
+   : (Array.isArray(data.users) ? data.users.length : 0);
+  value.textContent = total.toLocaleString("id-ID");
+ } catch (error) {
+  value.textContent = "—";
+  console.warn("Total pengguna admin:", error.message);
+ }
+}
+
 async function loadAdminUsers() {
  if (!isAdmin) return;
  const box = $("adminUserList");
  box.textContent = "Memuat akun pengguna...";
  try {
   const result = await adminApi("/admin/users");
+  await refreshAdminTotalUsers(result);
   const users = Array.isArray(result.users) ? result.users : [];
   box.innerHTML = "";
   if (!users.length) { box.textContent = "Belum ada akun pengguna."; return; }
