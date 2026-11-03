@@ -513,6 +513,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
   <nav>
    <button onclick="adminTab('acampaigns')">Campaign</button>
    <button onclick="adminTab('aapplications')">Pekerja</button>
+   <button onclick="adminTab('ausers')">👤 Akun Pengguna</button>
    <button onclick="adminTab('areports')">Laporan</button>
    <button onclick="adminTab('awithdrawals')">Penarikan</button>
    <button onclick="adminTab('aspin')">🎡 Kode Spin</button>
@@ -528,6 +529,12 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
   <div id="aapplications" class="adminTab hidden">
    <h3>👥 Kelola Pekerja</h3>
    <div id="adminApplicationList">Memuat...</div>
+  </div>
+
+  <div id="ausers" class="adminTab hidden">
+   <h3>👤 Pengelolaan Akun Pengguna</h3>
+   <p>Kelola status akun secara aman. Akun yang dinonaktifkan tidak dapat login sampai diaktifkan kembali.</p>
+   <div id="adminUserList">Memuat akun pengguna...</div>
   </div>
 
   <div id="areports" class="adminTab hidden">
@@ -749,6 +756,7 @@ function adminTab(id) {
 
  if (id === "acampaigns") loadAdminCampaigns();
  if (id === "aapplications") loadAdminApplications();
+ if (id === "ausers") loadAdminUsers();
  if (id === "areports") loadAdminReports();
  if (id === "awithdrawals") loadAdminWithdrawals();
  if (id === "aspin") loadAdminSpinCodes();
@@ -2460,6 +2468,97 @@ function adminCard(container, title, details, buttons = []) {
 
 function adminError(container, error) {
  $(container).textContent = error.message;
+}
+
+// =========================
+// ADMIN AKUN PENGGUNA
+// =========================
+async function adminApi(path, method = "GET", body = null) {
+ const {data, error} = await db.auth.getSession();
+ if (error) throw error;
+ const token = data.session?.access_token;
+ if (!token) throw new Error("Sesi login habis. Silakan login kembali.");
+ const options = {
+  method,
+  headers: {
+   Authorization: "Bearer " + token,
+   "Content-Type": "application/json"
+  }
+ };
+ if (body !== null) options.body = JSON.stringify(body);
+ let response;
+ try {
+  response = await fetch(WA_SERVER_URL + path, options);
+ } catch (_) {
+  throw new Error("Server Blasting Juara tidak dapat dijangkau.");
+ }
+ let result = {};
+ try { result = await response.json(); } catch (_) {}
+ if (!response.ok) throw new Error(result.error || "Permintaan admin gagal.");
+ return result;
+}
+
+async function loadAdminUsers() {
+ if (!isAdmin) return;
+ const box = $("adminUserList");
+ box.textContent = "Memuat akun pengguna...";
+ try {
+  const result = await adminApi("/admin/users");
+  const users = Array.isArray(result.users) ? result.users : [];
+  box.innerHTML = "";
+  if (!users.length) { box.textContent = "Belum ada akun pengguna."; return; }
+  users.forEach(account => {
+   const disabled = Boolean(account.disabled);
+   const joined = account.created_at ? dateTime(account.created_at) : "-";
+   const lastLogin = account.last_sign_in_at ? dateTime(account.last_sign_in_at) : "Belum pernah login";
+   const buttons = [];
+   if (account.id !== user.id && account.role !== "admin") {
+    buttons.push({
+     label: disabled ? "AKTIFKAN KEMBALI" : "NONAKTIFKAN AKUN",
+     className: disabled ? "success" : "secondary",
+     action: () => setAdminUserStatus(account.id, !disabled, account.email)
+    });
+    buttons.push({
+     label: "HAPUS AKUN PERMANEN",
+     className: "danger",
+     action: () => deleteAdminUser(account.id, account.email)
+    });
+   }
+   const name = account.full_name || account.email || "Pengguna";
+   adminCard("adminUserList", name, [
+    "Email: " + (account.email || "-"),
+    "ID: " + account.id,
+    "Peran: " + (account.role || "user"),
+    "Status: " + (disabled ? "DINONAKTIFKAN" : "AKTIF"),
+    "Terdaftar: " + joined,
+    "Login terakhir: " + lastLogin
+   ], buttons);
+  });
+ } catch (error) {
+  box.textContent = "Gagal memuat akun: " + error.message;
+ }
+}
+
+async function setAdminUserStatus(id, disabled, email) {
+ const action = disabled ? "menonaktifkan" : "mengaktifkan kembali";
+ if (!confirm("Yakin ingin " + action + " akun " + (email || "ini") + "?")) return;
+ try {
+  await adminApi("/admin/users/" + encodeURIComponent(id) + "/status", "POST", {disabled});
+  notify(disabled ? "Akun berhasil dinonaktifkan." : "Akun berhasil diaktifkan kembali.");
+  await loadAdminUsers();
+ } catch (error) { notify("Gagal mengubah status akun: " + error.message); }
+}
+
+async function deleteAdminUser(id, email) {
+ const confirmed = confirm("HAPUS PERMANEN akun " + (email || "ini") + "? Tindakan ini tidak dapat dibatalkan. Data terkait dapat ikut terpengaruh sesuai aturan relasi database.");
+ if (!confirmed) return;
+ const doubleCheck = prompt("Ketik HAPUS untuk mengonfirmasi penghapusan akun ini:");
+ if (doubleCheck !== "HAPUS") { notify("Penghapusan dibatalkan."); return; }
+ try {
+  await adminApi("/admin/users/" + encodeURIComponent(id), "DELETE");
+  notify("Akun berhasil dihapus.");
+  await loadAdminUsers();
+ } catch (error) { notify("Gagal menghapus akun: " + error.message); }
 }
 
 // =========================
