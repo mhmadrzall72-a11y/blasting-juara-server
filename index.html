@@ -177,6 +177,15 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 .admin-withdraw-actions button{flex:1;margin:0;padding:11px 8px;font-size:11px}
 @media(max-width:420px){.admin-withdraw-card{padding:13px}.admin-withdraw-grid{gap:7px}.admin-withdraw-field{padding:9px}.admin-withdraw-value{font-size:12px}.admin-withdraw-actions{flex-direction:column}}
 
+
+/* Pusat notifikasi */
+.notification-bell{position:relative!important}
+.notification-count{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:5px;border-radius:20px;background:#b75b78;color:#fff;font-size:10px;font-weight:800}
+.notification-card{display:flex;gap:12px;align-items:flex-start;padding:15px;margin:10px 0;border:1px solid rgba(194,161,232,.16);border-radius:13px;background:#1c1728}
+.notification-card.unread{border-color:rgba(194,161,232,.5);background:linear-gradient(110deg,rgba(119,87,150,.2),rgba(28,23,40,.95))}
+.notification-icon{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:12px;background:#3a2b4d;font-size:18px}
+.notification-body{flex:1;min-width:0}.notification-body strong{display:block;color:#f3eff7;margin-bottom:5px}.notification-body p{margin:0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.notification-time{display:block;margin-top:8px;color:#a99db6;font-size:11px}.notification-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.notification-actions button{font-size:11px}
+@media(max-width:420px){.notification-card{padding:12px;gap:9px}.notification-icon{width:32px;height:32px}}
 </style>
 </head>
 
@@ -258,6 +267,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 
  <nav class="box">
   <button onclick="showTab('campaigns')">Campaign</button>
+  <button class="notification-bell" onclick="showTab('notifications')">🔔 Notifikasi <span id="notificationBadge" class="notification-count hidden">0</span></button>
   <button onclick="showTab('spin')">🎡 Spin Wheel</button>
   <button onclick="showTab('whatsapp')">📱 WhatsApp</button>
   <button onclick="showTab('wallet')">Saldo</button>
@@ -322,6 +332,14 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 
   <button id="waDisconnectButton" class="danger hidden" onclick="disconnectWhatsApp()">BATALKAN TAUTAN</button>
   <button class="secondary" onclick="loadWhatsAppStatus()">PERIKSA STATUS</button>
+ </section>
+
+ <section id="notifications" class="box tab hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+   <div><h2>🔔 Pusat Notifikasi</h2><p>Semua informasi terbaru tentang akun dan aktivitas kamu.</p></div>
+   <button class="secondary" type="button" onclick="markAllNotificationsRead()">Tandai semua dibaca</button>
+  </div>
+  <div id="notificationList">Memuat notifikasi...</div>
  </section>
 
  <section id="campaigns" class="box tab">
@@ -445,6 +463,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <button onclick="adminTab('areports')">Laporan</button>
    <button onclick="adminTab('awithdrawals')">Penarikan</button>
    <button onclick="adminTab('aspin')">🎡 Kode Spin</button>
+   <button onclick="adminTab('anotifications')">🔔 Pengumuman</button>
   </nav>
 
   <div id="acampaigns" class="adminTab">
@@ -465,6 +484,18 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
   <div id="awithdrawals" class="adminTab hidden">
    <h3>💰 Kelola Penarikan</h3>
    <div id="adminWithdrawalList">Memuat...</div>
+  </div>
+
+  <div id="anotifications" class="adminTab hidden">
+   <h3>🔔 Kirim Pengumuman</h3>
+   <p>Pengumuman ini akan muncul di pusat notifikasi seluruh pengguna.</p>
+   <form id="broadcastNotificationForm">
+    <label>Judul pengumuman</label>
+    <input id="broadcastTitle" maxlength="100" required placeholder="Contoh: Informasi maintenance">
+    <label>Isi pengumuman</label>
+    <textarea id="broadcastMessage" maxlength="1000" required placeholder="Tulis informasi untuk semua pengguna..."></textarea>
+    <button type="submit">KIRIM KE SEMUA PENGGUNA</button>
+   </form>
   </div>
 
   <div id="aspin" class="adminTab hidden">
@@ -513,6 +544,7 @@ let pendingWithdrawalId = null;
 let pendingWithdrawalStatus = null;
 let withdrawalProcessing = false;
 let currentWaMethod = "qr";
+let notificationUnreadCount = 0;
 
 const $ = id => document.getElementById(id);
 
@@ -625,6 +657,7 @@ function showTab(id) {
  if (id === "jobs") loadJobs();
  if (id === "spin") { drawSpinWheel(); loadSpinHistory(); }
  if (id === "wallet") loadWallet();
+ if (id === "notifications") loadNotifications();
  if (id === "whatsapp") loadWhatsAppStatus();
 
  if (id === "admin") {
@@ -649,7 +682,90 @@ function adminTab(id) {
  if (id === "areports") loadAdminReports();
  if (id === "awithdrawals") loadAdminWithdrawals();
  if (id === "aspin") loadAdminSpinCodes();
+ if (id === "anotifications") {}
 }
+
+// =========================
+// PUSAT NOTIFIKASI
+// =========================
+function notificationIcon(type) {
+ const icons = {success:"✓",warning:"!",wallet:"💰",info:"🔔"};
+ return icons[type] || "🔔";
+}
+
+async function refreshNotificationBadge() {
+ if (!user) return;
+ const {count,error} = await db.from("notifications")
+  .select("id",{count:"exact",head:true})
+  .eq("user_id",user.id)
+  .eq("is_read",false);
+ if (error) { console.warn("Badge notifikasi:",error.message); return; }
+ notificationUnreadCount = count || 0;
+ const badge = $("notificationBadge");
+ badge.textContent = notificationUnreadCount > 99 ? "99+" : String(notificationUnreadCount);
+ badge.classList.toggle("hidden",notificationUnreadCount < 1);
+}
+
+async function loadNotifications() {
+ if (!user) return;
+ const box = $("notificationList");
+ box.textContent = "Memuat notifikasi...";
+ const {data,error} = await db.from("notifications")
+  .select("id,title,message,type,is_read,is_broadcast,created_at")
+  .eq("user_id",user.id)
+  .order("created_at",{ascending:false}).limit(100);
+ if (error) { box.textContent = "Notifikasi belum dapat dimuat: " + error.message; return; }
+ if (!data || !data.length) {
+  box.innerHTML = '<div class="transaction-empty">Belum ada notifikasi. Informasi terbaru akan muncul di sini.</div>';
+  await refreshNotificationBadge();
+  return;
+ }
+ box.innerHTML = data.map(item => `
+  <article class="notification-card ${item.is_read ? "" : "unread"}">
+   <div class="notification-icon">${notificationIcon(escapeHTML(item.type))}</div>
+   <div class="notification-body">
+    <strong>${escapeHTML(item.title)}${item.is_broadcast ? ' <small>• Pengumuman</small>' : ''}</strong>
+    <p>${escapeHTML(item.message)}</p>
+    <span class="notification-time">${escapeHTML(dateTime(item.created_at))}</span>
+    ${item.is_read ? '' : `<button class="secondary" type="button" onclick="markNotificationRead('${item.id}')">Tandai dibaca</button>`}
+   </div>
+  </article>`).join("");
+ await refreshNotificationBadge();
+}
+
+async function markNotificationRead(id) {
+ const {error} = await db.from("notifications").update({is_read:true}).eq("id",id).eq("user_id",user.id);
+ if (error) { notify("Gagal memperbarui notifikasi: " + error.message); return; }
+ await loadNotifications();
+}
+
+async function markAllNotificationsRead() {
+ if (!user) return;
+ const {error} = await db.from("notifications").update({is_read:true}).eq("user_id",user.id).eq("is_read",false);
+ if (error) { notify("Gagal menandai notifikasi: " + error.message); return; }
+ await loadNotifications();
+ notify("Semua notifikasi pribadi sudah ditandai dibaca.");
+}
+
+async function sendBroadcastNotification(event) {
+ event.preventDefault();
+ if (!isAdmin) { notify("Akses admin ditolak."); return; }
+ const title = $("broadcastTitle").value.trim();
+ const message = $("broadcastMessage").value.trim();
+ if (!title || !message) { notify("Judul dan isi pengumuman wajib diisi."); return; }
+ const button = event.submitter || $("broadcastNotificationForm").querySelector("button[type=submit]");
+ button.disabled = true; button.textContent = "MENGIRIM...";
+ const {data,error} = await db.rpc("admin_broadcast_notification", {
+  p_title:title,
+  p_message:message
+ });
+ button.disabled = false; button.textContent = "KIRIM KE SEMUA PENGGUNA";
+ if (error) { notify("Pengumuman gagal dikirim: " + error.message); return; }
+ $("broadcastNotificationForm").reset();
+ notify("Pengumuman berhasil dikirim ke " + Number(data || 0) + " pengguna.");
+}
+
+$("broadcastNotificationForm").addEventListener("submit",sendBroadcastNotification);
 
 // =========================
 // WHATSAPP API
@@ -1360,6 +1476,7 @@ async function openDashboard() {
 
  $("dashboard").classList.remove("hidden");
  $("userLabel").textContent = user.email || "";
+ refreshNotificationBadge();
 
  $("welcome").textContent =
   "Selamat datang, " +
@@ -2512,6 +2629,7 @@ db.auth.onAuthStateChange((event, session) => {
 // =========================
 
 start();
+setInterval(() => { if (user) refreshNotificationBadge(); }, 45000);
 
 </script>
 </body>
