@@ -1722,15 +1722,31 @@ async function verifySpinCode() {
   if (error) throw error;
   if (!data?.valid) throw new Error(data?.message || "Kode tidak valid atau kuota habis.");
   spinVerifiedCode = code;
-  pendingSpinId = null;
-  pendingSpinPrize = 0;
-  $("claimSpinButton").classList.add("hidden");
-  $("spinButton").disabled = false;
-  $("spinButton").textContent = "🎁 MULAI SPIN";
   $("spinWheelArea").classList.remove("hidden");
-  $("spinResult").classList.add("hidden");
-  notify("Kode valid. Kamu bisa mulai Spin Wheel!");
   drawSpinWheel();
+
+  // Pulihkan hadiah pending dari server. Ini penting jika halaman sempat
+  // ditutup/refresh setelah roda berputar tetapi sebelum hadiah diklaim.
+  if (data.pending_id) {
+   pendingSpinId = data.pending_id;
+   pendingSpinPrize = Number(data.pending_prize || 0);
+   $("spinResult").textContent = "🎉 Hadiah " + rupiah(pendingSpinPrize) + " masih menunggu klaim. Tekan KLAIM HADIAH untuk memasukkannya ke saldo.";
+   $("spinResult").classList.remove("hidden");
+   $("claimSpinButton").classList.remove("hidden");
+   $("claimSpinButton").disabled = false;
+   $("claimSpinButton").textContent = "🎁 KLAIM HADIAH";
+   $("spinButton").disabled = true;
+   $("spinButton").textContent = "HADIAH SIAP DIKLAIM";
+   notify("Ditemukan hadiah yang belum diklaim. Silakan klaim terlebih dahulu.");
+  } else {
+   pendingSpinId = null;
+   pendingSpinPrize = 0;
+   $("claimSpinButton").classList.add("hidden");
+   $("spinButton").disabled = false;
+   $("spinButton").textContent = "🎁 MULAI SPIN";
+   $("spinResult").classList.add("hidden");
+   notify("Kode valid. Kamu bisa mulai Spin Wheel!");
+  }
  } catch (error) {
   spinVerifiedCode = "";
   $("spinWheelArea").classList.add("hidden");
