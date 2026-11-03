@@ -325,6 +325,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    </div>
    <button type="button" id="spinButton" onclick="playSpin()">🎁 MULAI SPIN</button>
    <div id="spinResult" class="spin-result hidden" aria-live="polite"></div>
+   <button type="button" id="claimSpinButton" class="success hidden" onclick="claimSpinPrize()">🎁 KLAIM HADIAH</button>
   </div>
   <hr>
   <h3>Riwayat Spin Saya</h3>
@@ -453,9 +454,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
     <input id="newSpinCode" maxlength="80" placeholder="Contoh: JUARA2026">
     <label>Batas penggunaan total</label>
     <input id="spinUseLimit" type="number" min="1" value="10" required>
-    <label>Hadiah saldo (pisahkan dengan koma, Rupiah)</label>
-    <input id="spinPrizeAmounts" value="500,1000,2000,5000,10000" required>
-    <small>Setiap nominal memiliki peluang sama. Hadiah dan saldo diproses oleh database.</small><br>
+    <p>Hadiah ditentukan otomatis oleh database. Persentase peluang tidak ditampilkan di halaman Spin.</p>
     <button type="submit">BUAT KODE SPIN</button>
    </form>
    <hr>
@@ -1692,13 +1691,16 @@ $("wdType").addEventListener("change", function() {
 // =========================
 let spinVerifiedCode = "";
 let spinBusy = false;
-const spinPalette = ["#f3c45b", "#16885c", "#2774ae", "#a34b9b", "#d65b45"];
+let pendingSpinId = null;
+let pendingSpinPrize = 0;
+const spinWheelPrizes = [1000,3000,5000,7000,10000,15000,20000];
+const spinPalette = ["#c9a9e8", "#8c70aa", "#d8c5eb", "#70518e", "#b99bd5", "#9276b3", "#e0d2ef"];
 
 function drawSpinWheel() {
  const canvas = $("spinCanvas");
  if (!canvas) return;
  const ctx = canvas.getContext("2d");
- const prizes = ["Rp500", "Rp1.000", "Rp2.000", "Rp5.000", "Rp10.000", "Rp500", "Rp1.000", "Rp2.000"];
+ const prizes = spinWheelPrizes.map(value => rupiah(value));
  const cx = 300, cy = 300, radius = 285, slice = Math.PI * 2 / prizes.length;
  ctx.clearRect(0,0,600,600);
  prizes.forEach((label,i) => {
@@ -1707,11 +1709,27 @@ function drawSpinWheel() {
   ctx.fillStyle = spinPalette[i % spinPalette.length]; ctx.fill();
   ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.stroke();
   ctx.save(); ctx.translate(cx,cy); ctx.rotate(start+slice/2);
-  ctx.fillStyle = "#071426"; ctx.font = "bold 25px Arial"; ctx.textAlign = "right";
-  ctx.fillText(label, radius-22, 9); ctx.restore();
+  ctx.fillStyle = "#241b31"; ctx.font = "bold 23px Arial"; ctx.textAlign = "right";
+  ctx.fillText(label, radius-18, 9); ctx.restore();
  });
- ctx.beginPath(); ctx.arc(cx,cy,45,0,Math.PI*2); ctx.fillStyle="#102744"; ctx.fill();
- ctx.strokeStyle="#f3c45b"; ctx.lineWidth=8; ctx.stroke();
+ ctx.beginPath(); ctx.arc(cx,cy,45,0,Math.PI*2); ctx.fillStyle="#30243f"; ctx.fill();
+ ctx.strokeStyle="#c2a1e8"; ctx.lineWidth=8; ctx.stroke();
+}
+
+function animateSpinToPrize(amount) {
+ const canvas = $("spinCanvas");
+ const index = spinWheelPrizes.indexOf(Number(amount));
+ if (!canvas || index < 0) throw new Error("Nominal hadiah tidak cocok dengan roda Spin.");
+ const match = (canvas.style.transform || "rotate(0deg)").match(/rotate\(([-0-9.]+)deg\)/);
+ const base = match ? Number(match[1]) : 0;
+ const sliceDegrees = 360 / spinWheelPrizes.length;
+ const targetModulo = (360 - ((index + 0.5) * sliceDegrees)) % 360;
+ const currentModulo = ((base % 360) + 360) % 360;
+ const adjustment = (targetModulo - currentModulo + 360) % 360;
+ const extraTurns = 6 + Math.floor(Math.random()*3);
+ canvas.style.transition = "transform 4.2s cubic-bezier(.12,.75,.12,1)";
+ canvas.style.transform = "rotate(" + (base + extraTurns*360 + adjustment) + "deg)";
+ return new Promise(resolve => setTimeout(resolve, 4300));
 }
 
 async function verifySpinCode() {
@@ -1725,9 +1743,27 @@ async function verifySpinCode() {
   if (!data?.valid) throw new Error(data?.message || "Kode tidak valid atau kuota habis.");
   spinVerifiedCode = code;
   $("spinWheelArea").classList.remove("hidden");
-  $("spinResult").classList.add("hidden");
-  notify("Kode valid. Kamu bisa mulai Spin Wheel!");
   drawSpinWheel();
+  if (data.pending_id) {
+   pendingSpinId = data.pending_id;
+   pendingSpinPrize = Number(data.pending_prize || 0);
+   $("spinResult").textContent = "🎉 Hadiah " + rupiah(pendingSpinPrize) + " masih menunggu klaim. Tekan KLAIM HADIAH untuk memasukkannya ke saldo.";
+   $("spinResult").classList.remove("hidden");
+   $("claimSpinButton").classList.remove("hidden");
+   $("claimSpinButton").disabled = false;
+   $("claimSpinButton").textContent = "🎁 KLAIM HADIAH";
+   $("spinButton").disabled = true;
+   $("spinButton").textContent = "HADIAH SIAP DIKLAIM";
+   notify("Ditemukan hadiah yang belum diklaim. Silakan klaim terlebih dahulu.");
+  } else {
+   pendingSpinId = null;
+   pendingSpinPrize = 0;
+   $("claimSpinButton").classList.add("hidden");
+   $("spinButton").disabled = false;
+   $("spinButton").textContent = "🎁 MULAI SPIN";
+   $("spinResult").classList.add("hidden");
+   notify("Kode valid. Kamu bisa mulai Spin Wheel!");
+  }
  } catch (error) {
   spinVerifiedCode = "";
   $("spinWheelArea").classList.add("hidden");
@@ -1736,44 +1772,84 @@ async function verifySpinCode() {
 }
 
 async function playSpin() {
- if (!user || !spinVerifiedCode || spinBusy) return;
- const button = $("spinButton"); spinBusy = true; button.disabled = true; button.textContent = "RODA BERPUTAR...";
+ if (!user || !spinVerifiedCode || spinBusy || pendingSpinId) return;
+ const button = $("spinButton");
+ spinBusy = true; button.disabled = true; button.textContent = "RODA BERPUTAR...";
+ $("claimSpinButton").classList.add("hidden");
+ $("spinResult").classList.add("hidden");
  try {
-  // Hadiah ditentukan database; animasi hanya menampilkan hasil resmi dari server.
-  const {data,error} = await db.rpc("redeem_spin_code", {p_code:spinVerifiedCode});
+  const {data,error} = await db.rpc("draw_spin_prize", {p_code:spinVerifiedCode});
   if (error) throw error;
   const result = Array.isArray(data) ? data[0] : data;
   if (!result?.success) throw new Error(result?.message || "Spin gagal diproses.");
-  const canvas = $("spinCanvas");
-  const current = canvas.style.transform || "rotate(0deg)";
-  const match = current.match(/rotate\(([-0-9.]+)deg\)/);
-  const base = match ? Number(match[1]) : 0;
-  const extra = 1800 + Math.floor(Math.random()*900);
-  canvas.style.transition = "transform 4s cubic-bezier(.12,.75,.12,1)";
-  canvas.style.transform = "rotate(" + (base + extra) + "deg)";
-  await new Promise(resolve => setTimeout(resolve, 4100));
-  $("spinResult").textContent = "🎉 Selamat! Kamu mendapatkan " + rupiah(result.prize_amount) + ". Saldo sekarang: " + rupiah(result.new_balance) + ".";
+  if (!result.spin_id) throw new Error("ID hadiah tidak diterima dari database. Hadiah belum dapat diklaim.");
+  pendingSpinId = result.spin_id;
+  pendingSpinPrize = Number(result.prize_amount || 0);
+  await animateSpinToPrize(pendingSpinPrize);
+  $("spinResult").textContent = "🎉 Selamat! Kamu mendapatkan " + rupiah(pendingSpinPrize) + ". Tekan tombol KLAIM HADIAH untuk memasukkan hadiah ke saldo.";
   $("spinResult").classList.remove("hidden");
-  $("balance").textContent = rupiah(result.new_balance);
-  spinVerifiedCode = "";
-  $("spinCodeInput").value = "";
-  $("spinWheelArea").classList.add("hidden");
-  await Promise.all([loadSpinHistory(), loadWallet()]);
+  $("claimSpinButton").classList.remove("hidden");
+  $("claimSpinButton").disabled = false;
+  $("claimSpinButton").textContent = "🎁 KLAIM HADIAH";
+  button.textContent = "HADIAH SIAP DIKLAIM";
  } catch (error) {
   notify("Spin tidak berhasil: " + error.message);
- } finally { spinBusy = false; button.disabled = false; button.textContent = "🎁 MULAI SPIN"; }
+  if (!pendingSpinId) button.textContent = "🎁 MULAI SPIN";
+  else {
+   $("spinResult").textContent = "Hadiah " + rupiah(pendingSpinPrize) + " sudah tersimpan. Silakan klaim hadiah.";
+   $("spinResult").classList.remove("hidden");
+   $("claimSpinButton").classList.remove("hidden");
+   $("claimSpinButton").disabled = false;
+  }
+ } finally {
+  spinBusy = false;
+  button.disabled = !spinVerifiedCode || !!pendingSpinId;
+ }
+}
+
+async function claimSpinPrize() {
+ if (!user || !pendingSpinId || spinBusy) return;
+ const button = $("claimSpinButton");
+ spinBusy = true; button.disabled = true; button.textContent = "MEMPROSES KLAIM...";
+ try {
+  const {data,error} = await db.rpc("claim_spin_prize", {p_spin_id:pendingSpinId});
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result?.success) throw new Error(result?.message || "Klaim hadiah gagal diproses.");
+  $("balance").textContent = rupiah(result.new_balance);
+  $("spinResult").textContent = "✅ Hadiah " + rupiah(result.prize_amount || pendingSpinPrize) + " berhasil diklaim! Saldo kamu sekarang " + rupiah(result.new_balance) + ".";
+  $("spinResult").classList.remove("hidden");
+  button.classList.add("hidden");
+  pendingSpinId = null; pendingSpinPrize = 0; spinVerifiedCode = "";
+  $("spinCodeInput").value = "";
+  $("spinButton").textContent = "MASUKKAN KODE BARU UNTUK SPIN LAGI";
+  $("spinButton").disabled = true;
+  await Promise.all([loadSpinHistory(),loadWallet()]);
+ } catch (error) {
+  notify("Klaim hadiah gagal: " + error.message);
+  button.disabled = false; button.textContent = "🎁 COBA KLAIM LAGI";
+ } finally { spinBusy = false; }
 }
 
 async function loadSpinHistory() {
  if (!user) return;
  const box = $("spinHistory"); box.textContent = "Memuat...";
- const {data,error} = await db.from("spin_history").select("id,prize_amount,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30);
+ const {data,error} = await db.from("spin_history").select("id,prize_amount,status,created_at,claimed_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30);
  if (error) { box.textContent = "Riwayat belum dapat dimuat: " + error.message; return; }
  box.innerHTML = "";
  if (!data?.length) { box.textContent = "Belum ada riwayat Spin."; return; }
  data.forEach(item => {
-  const row = document.createElement("div"); row.className="transaction-item income";
-  row.textContent = rupiah(item.prize_amount) + " • " + dateTime(item.created_at); box.append(row);
+  const row = document.createElement("div"); row.className = "transaction-item " + (item.status === "claimed" ? "income" : "");
+  const title = document.createElement("strong"); title.textContent = rupiah(item.prize_amount);
+  const status = document.createElement("div"); status.textContent = item.status === "claimed" ? "Sudah diklaim" : "Menunggu klaim";
+  const date = document.createElement("div"); date.className = "transaction-date"; date.textContent = dateTime(item.claimed_at || item.created_at);
+  row.append(title,status,date);
+  if (item.status === "pending") {
+   const claim = document.createElement("button"); claim.className = "success"; claim.textContent = "🎁 KLAIM HADIAH";
+   claim.onclick = async () => { pendingSpinId = item.id; pendingSpinPrize = Number(item.prize_amount); $("spinWheelArea").classList.remove("hidden"); $("spinResult").textContent = "Hadiah " + rupiah(pendingSpinPrize) + " menunggu klaim."; $("spinResult").classList.remove("hidden"); $("claimSpinButton").classList.remove("hidden"); $("claimSpinButton").disabled = false; showTab("spin"); await claimSpinPrize(); };
+   row.append(claim);
+  }
+  box.append(row);
  });
 }
 
@@ -1785,10 +1861,10 @@ async function loadAdminSpinCodes() {
  box.innerHTML = "";
  if (!data?.length) { box.textContent = "Belum ada kode Spin."; return; }
  data.forEach(item => {
-  const card = document.createElement("div"); card.className="card";
+  const card = document.createElement("div"); card.className = "card";
   const title = document.createElement("h3"); title.textContent = item.code;
   const detail = document.createElement("p"); detail.textContent = "Penggunaan: " + item.used_count + "/" + item.uses_limit + " • Status: " + (item.is_active ? "Aktif" : "Nonaktif");
-  const prize = document.createElement("p"); prize.textContent = "Hadiah: " + (item.prizes || []).map(x => rupiah(x.amount)).join(", ");
+  const prize = document.createElement("p"); prize.textContent = "Nominal hadiah: " + (item.prizes || []).map(x => rupiah(x.amount)).join(", ");
   const toggle = document.createElement("button"); toggle.className = item.is_active ? "danger" : "success"; toggle.textContent = item.is_active ? "NONAKTIFKAN" : "AKTIFKAN";
   toggle.onclick = async () => { const {error} = await db.rpc("admin_set_spin_code_active",{p_code_id:item.id,p_is_active:!item.is_active}); if(error) notify(error.message); else loadAdminSpinCodes(); };
   card.append(title,detail,prize,toggle); box.append(card);
@@ -1798,12 +1874,11 @@ async function loadAdminSpinCodes() {
 $("spinCodeForm").onsubmit = async event => {
  event.preventDefault(); if (!isAdmin) return;
  const limit = Number($("spinUseLimit").value);
- const amounts = $("spinPrizeAmounts").value.split(",").map(x => Number(x.trim()));
- if (!Number.isInteger(limit) || limit < 1 || !amounts.length || amounts.some(x => !Number.isSafeInteger(x) || x < 1)) { notify("Batas penggunaan dan nominal hadiah harus angka Rupiah yang valid."); return; }
+ if (!Number.isInteger(limit) || limit < 1) { notify("Batas penggunaan harus angka minimal 1."); return; }
  const code = $("newSpinCode").value.trim().toUpperCase();
- const {error} = await db.rpc("admin_create_spin_code",{p_code:code || null,p_uses_limit:limit,p_prizes:amounts.map(amount => ({amount}))});
+ const {error} = await db.rpc("admin_create_spin_code",{p_code:code || null,p_uses_limit:limit});
  if (error) { notify("Gagal membuat kode: " + error.message); return; }
- notify("Kode Spin berhasil dibuat."); event.currentTarget.reset(); $("spinUseLimit").value="10"; $("spinPrizeAmounts").value="500,1000,2000,5000,10000"; await loadAdminSpinCodes();
+ notify("Kode Spin berhasil dibuat."); event.currentTarget.reset(); $("spinUseLimit").value="10"; await loadAdminSpinCodes();
 };
 
 // =========================
