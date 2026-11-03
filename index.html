@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -14,6 +12,8 @@ body{margin:0;background:#071426;color:#fff;font-family:Arial,sans-serif}
 header{background:#102744;padding:17px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
 .logo{color:#f3c45b;font-size:19px;font-weight:bold}
 main{max-width:950px;margin:auto;padding:15px}
+/* Tahan tampilan sampai pemeriksaan sesi selesai agar form login tidak berkedip */
+body.auth-checking>header,body.auth-checking>main{visibility:hidden!important}
 /* Halaman login/daftar berada tepat di tengah layar */
 #auth{width:min(100%,440px);margin:0 auto}
 /* Mode autentikasi: sembunyikan header dan pusatkan kartu di viewport penuh */
@@ -197,7 +197,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 </style>
 </head>
 
-<body>
+<body class="auth-checking">
 
 <div class="confirm-overlay" id="reportConfirmModal">
  <div class="confirm-box">
@@ -541,6 +541,14 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
   <div id="ausers" class="adminTab hidden">
    <h3>👤 Pengelolaan Akun Pengguna</h3>
    <p>Kelola status akun secara aman. Akun yang dinonaktifkan tidak dapat login sampai diaktifkan kembali.</p>
+   <div class="card" style="margin-bottom:14px">
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+     <input id="adminSelectAllUsers" type="checkbox" style="width:auto;margin:0" onchange="toggleAllAdminUsers(this.checked)">
+     <span>Pilih semua akun yang dapat dihapus</span>
+    </label>
+    <div id="adminSelectedUserCount" style="color:#a9b9ca;margin-bottom:10px">0 akun dipilih</div>
+    <button id="adminBulkDeleteUsersButton" class="danger" onclick="deleteSelectedAdminUsers()" disabled>🗑️ HAPUS AKUN TERPILIH</button>
+   </div>
    <div id="adminUserList">Memuat akun pengguna...</div>
   </div>
 
@@ -676,12 +684,14 @@ function hideAll() {
 }
 
 function backHome() {
+ document.body.classList.remove("auth-checking");
  document.body.classList.remove("auth-mode");
  hideAll();
  $("home").classList.remove("hidden");
 }
 
 function authPage(mode) {
+ document.body.classList.remove("auth-checking");
  const isSignup = mode === "signup";
  document.body.classList.add("auth-mode");
  hideAll();
@@ -1652,6 +1662,7 @@ async function checkAdmin() {
 }
 
 async function openDashboard() {
+ document.body.classList.remove("auth-checking");
  document.body.classList.remove("auth-mode");
  if (!user) {
   notify("Silakan login terlebih dahulu.");
@@ -2534,18 +2545,21 @@ async function loadAdminUsers() {
  if (!isAdmin) return;
  const box = $("adminUserList");
  box.textContent = "Memuat akun pengguna...";
+ const selectAll = $("adminSelectAllUsers");
+ if (selectAll) selectAll.checked = false;
  try {
   const result = await adminApi("/admin/users");
   await refreshAdminTotalUsers(result);
   const users = Array.isArray(result.users) ? result.users : [];
   box.innerHTML = "";
-  if (!users.length) { box.textContent = "Belum ada akun pengguna."; return; }
+  if (!users.length) { box.textContent = "Belum ada akun pengguna."; updateAdminBulkSelection(); return; }
   users.forEach(account => {
    const disabled = Boolean(account.disabled);
    const joined = account.created_at ? dateTime(account.created_at) : "-";
    const lastLogin = account.last_sign_in_at ? dateTime(account.last_sign_in_at) : "Belum pernah login";
+   const canManage = account.id !== user.id && account.role !== "admin";
    const buttons = [];
-   if (account.id !== user.id && account.role !== "admin") {
+   if (canManage) {
     buttons.push({
      label: disabled ? "AKTIFKAN KEMBALI" : "NONAKTIFKAN AKUN",
      className: disabled ? "success" : "secondary",
@@ -2566,9 +2580,67 @@ async function loadAdminUsers() {
     "Terdaftar: " + joined,
     "Login terakhir: " + lastLogin
    ], buttons);
+   if (canManage) {
+    const card = box.lastElementChild;
+    card.dataset.userId = account.id;
+    const label = document.createElement("label");
+    label.style.cssText = "display:flex;align-items:center;gap:10px;margin:0 0 12px;color:#f3c45b;font-weight:700";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.dataset.userSelect = "true";
+    checkbox.dataset.userId = account.id;
+    checkbox.style.cssText = "width:auto;margin:0";
+    checkbox.addEventListener("change", updateAdminBulkSelection);
+    label.append(checkbox, document.createTextNode("Pilih akun ini untuk dihapus"));
+    card.prepend(label);
+   }
   });
+  updateAdminBulkSelection();
  } catch (error) {
   box.textContent = "Gagal memuat akun: " + error.message;
+ }
+}
+
+function updateAdminBulkSelection() {
+ const checks = Array.from(document.querySelectorAll('#adminUserList input[data-user-select="true"]'));
+ const selected = checks.filter(item => item.checked).length;
+ const count = $("adminSelectedUserCount");
+ const button = $("adminBulkDeleteUsersButton");
+ const all = $("adminSelectAllUsers");
+ if (count) count.textContent = selected + " akun dipilih";
+ if (button) { button.disabled = selected === 0; button.textContent = selected ? "🗑️ HAPUS " + selected + " AKUN TERPILIH" : "🗑️ HAPUS AKUN TERPILIH"; }
+ if (all) { all.checked = checks.length > 0 && selected === checks.length; all.indeterminate = selected > 0 && selected < checks.length; }
+}
+
+function toggleAllAdminUsers(checked) {
+ document.querySelectorAll('#adminUserList input[data-user-select="true"]').forEach(item => { item.checked = checked; });
+ updateAdminBulkSelection();
+}
+
+async function deleteSelectedAdminUsers() {
+ if (!isAdmin) return;
+ const selected = Array.from(document.querySelectorAll('#adminUserList input[data-user-select="true"]:checked'));
+ const ids = selected.map(item => item.dataset.userId).filter(Boolean);
+ if (!ids.length) { notify("Pilih akun yang ingin dihapus terlebih dahulu."); return; }
+ if (!confirm("Yakin ingin menghapus permanen " + ids.length + " akun terpilih? Tindakan ini tidak dapat dibatalkan.")) return;
+ const button = $("adminBulkDeleteUsersButton");
+ if (button) { button.disabled = true; button.textContent = "MENGHAPUS " + ids.length + " AKUN..."; }
+ let success = 0;
+ const failures = [];
+ for (const id of ids) {
+  try {
+   await adminApi("/admin/users/" + encodeURIComponent(id), "DELETE");
+   success++;
+  } catch (error) {
+   failures.push(id + ": " + error.message);
+  }
+ }
+ await loadAdminUsers();
+ if (failures.length) {
+  notify(success + " akun berhasil dihapus. " + failures.length + " gagal dihapus. Periksa koneksi/server lalu coba lagi.");
+  console.error("Penghapusan massal gagal:", failures);
+ } else {
+  notify(success + " akun berhasil dihapus.");
  }
 }
 
