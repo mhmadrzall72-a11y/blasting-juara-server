@@ -192,6 +192,67 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 .referral-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}.referral-summary-grid .card{margin:0}.referral-code{font-size:24px;font-weight:850;letter-spacing:.12em;color:#e5cff8;margin:12px 0;overflow-wrap:anywhere}.referral-link{font-size:12px;line-height:1.5;color:#d6c6e5;overflow-wrap:anywhere;margin:12px 0;min-height:36px}.referral-terms{background:#1c1728;border:1px solid rgba(194,161,232,.2);border-radius:13px;padding:15px;margin:16px 0}.referral-terms li{color:#d7cddd;line-height:1.6;margin:7px 0}.referral-row,.support-ticket{background:#1c1728;border:1px solid rgba(194,161,232,.17);border-radius:13px;padding:14px;margin:10px 0}.referral-row-top,.support-ticket-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.support-ticket{cursor:pointer}.support-ticket:hover{border-color:rgba(194,161,232,.5)}.support-status{font-size:11px;border-radius:20px;padding:5px 9px;background:#40334e;color:#e6d8f2}.support-status.closed{background:#294b3e;color:#bde4ce}.support-conversation{border:1px solid rgba(194,161,232,.2);border-radius:14px;padding:14px;margin-top:16px;background:#171321}.support-conversation-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.support-message-list{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding:12px 0}.support-message{max-width:88%;padding:11px 13px;border-radius:13px;background:#30243f;color:#f3eff7;overflow-wrap:anywhere;line-height:1.5}.support-message.user{align-self:flex-end;background:#284b42}.support-message.admin{align-self:flex-start;background:#30243f}.support-message small{display:block;margin-top:6px;font-size:10px;opacity:.75}.support-ticket-meta{font-size:12px;color:#a99db6;margin-top:7px}
 @media(max-width:520px){.header-actions{gap:5px}.header-actions button{font-size:11px;padding:9px 10px}.referral-summary-grid{grid-template-columns:1fr 1fr}.support-message{max-width:95%}}
 
+
+/* NAVIGASI TERPISAH: sidebar desktop dan menu bawah mobile */
+#dashboard{display:grid;grid-template-columns:228px minmax(0,1fr);gap:14px;align-items:start}
+#dashboard>.box:first-child{grid-column:1/-1;margin:0 0 2px}
+#dashboard>nav.sidebar{grid-column:1;grid-row:2;position:sticky;top:12px;display:flex;flex-direction:column;gap:5px;padding:13px;margin:0;border-radius:16px}
+#dashboard>nav.sidebar button{width:100%;min-width:0;flex:none;display:flex;align-items:center;gap:11px;text-align:left;margin:0;padding:11px 12px;border:1px solid transparent;background:transparent;color:#c9bfd4;font-size:12px;border-radius:10px}
+#dashboard>nav.sidebar button span{width:20px;text-align:center;font-size:17px;color:#d7c1ed}
+#dashboard>nav.sidebar button:hover,#dashboard>nav.sidebar button.active{background:linear-gradient(90deg,rgba(194,161,232,.2),rgba(194,161,232,.04));border-color:rgba(194,161,232,.24);color:#f3eff7}
+.sidebar-label{padding:9px 10px 5px;color:#9f91ad;font-size:9px;font-weight:800;letter-spacing:.13em}
+.sidebar-divider{height:1px;background:rgba(194,161,232,.16);margin:7px 3px}
+#dashboard>nav.sidebar button.sidebar-logout{color:#e5a4b3;margin-top:2px}
+#dashboard>.tab{grid-column:2;grid-row:auto;min-width:0;margin:0;padding:20px;border-radius:16px}
+#dashboard>.tab#campaigns{grid-column:2}
+.page-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.page-heading h2{margin:5px 0 7px}.page-heading p{margin:0;max-width:680px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;color:#bda5d5}
+.feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+.feature-tile{min-width:0;min-height:116px;margin:0;padding:16px;display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left;background:#1c1728;border:1px solid rgba(194,161,232,.2);color:#f3eff7;border-radius:14px}
+.feature-tile>span{font-size:22px;color:#d7c1ed}.feature-tile strong{font-size:13px}.feature-tile small{font-size:11px;color:#a99db6;font-weight:400}
+.mobile-bottom-nav{display:none}
+@media(max-width:760px){
+ #dashboard{display:block;padding-bottom:82px}
+ #dashboard>.box:first-child{margin:0 0 12px}
+ #dashboard>nav.sidebar{display:none}
+ #dashboard>.tab{margin:12px 0;padding:16px}
+ #dashboard>.tab#campaigns{margin-top:0}
+ .mobile-bottom-nav{position:fixed;z-index:5000;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:4px;padding:8px 7px calc(8px + env(safe-area-inset-bottom));background:rgba(29,23,40,.98);border-top:1px solid rgba(194,161,232,.25);backdrop-filter:blur(14px)}
+ .mobile-bottom-nav button{flex:1;min-width:0;margin:0;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;color:#a99db6;border:1px solid transparent;font-size:18px}
+ .mobile-bottom-nav button.active{background:rgba(194,161,232,.13);border-color:rgba(194,161,232,.2);color:#e5cff8}
+ .mobile-bottom-nav button small{font-size:10px;color:inherit}
+ .feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:380px){.feature-grid{grid-template-columns:1fr}.feature-tile{min-height:92px}}
+
+
+/* PERBAIKAN LOGIN: navigasi dashboard tidak boleh menutupi halaman masuk/daftar */
+body.auth-mode main{position:fixed!important;inset:0!important;z-index:10000!important;width:100%!important;height:100vh!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:12px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow-x:hidden!important;overflow-y:auto!important;isolation:isolate}
+body.auth-mode #auth,body.auth-mode #auth.box{position:relative!important;z-index:10002!important;display:block!important;visibility:visible!important;pointer-events:auto!important;width:min(100%,440px)!important;max-width:440px!important;max-height:calc(100dvh - 24px)!important;overflow-y:auto!important;margin:auto!important;flex:0 1 440px!important}
+body.auth-mode #auth *{pointer-events:auto}
+body.auth-mode .mobile-bottom-nav,body.auth-mode #dashboard{display:none!important;visibility:hidden!important;pointer-events:none!important}
+body.auth-mode #message{z-index:10003!important}
+body.auth-mode #auth input,body.auth-mode #auth button{position:relative;z-index:1;touch-action:manipulation}
+@media(max-width:500px){body.auth-mode main{padding:10px!important}body.auth-mode #auth.box{padding:18px!important;max-height:calc(100dvh - 20px)!important}}
+
+
+/* Tata letak dashboard dirapikan: empat menu utama di bawah, fitur lain di halaman Lainnya. */
+#dashboard{display:block!important;min-width:0!important;padding:0 0 86px!important}
+#dashboard>nav.sidebar{display:none!important}
+#dashboard>.box:first-child{display:block!important;width:100%!important;margin:0 0 12px!important;padding:17px!important}
+#dashboard>.box:first-child .grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;min-width:0!important;margin-top:12px!important}
+#dashboard>.box:first-child .card{min-width:0!important;margin:0!important;padding:13px!important}
+#dashboard>.tab{display:block;width:100%;min-width:0;margin:10px 0;padding:16px;animation:bjFade .18s ease}
+#dashboard>.tab.hidden{display:none!important}
+.mobile-bottom-nav{position:fixed!important;z-index:100!important;left:0!important;right:0!important;bottom:0!important;transform:none!important;width:100%!important;max-width:none!important;display:flex!important;flex-wrap:nowrap!important;justify-content:space-around!important;gap:4px!important;overflow:visible!important;padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important;background:rgba(29,23,40,.98)!important;border:0!important;border-top:1px solid rgba(194,161,232,.25)!important;border-radius:0!important;box-shadow:0 -4px 18px rgba(0,0,0,.2)!important;backdrop-filter:blur(12px)}
+.mobile-bottom-nav button{flex:1 1 0!important;width:auto!important;min-width:0!important;height:52px!important;margin:0!important;padding:4px 2px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;background:transparent!important;border:1px solid transparent!important;border-radius:9px!important;color:#bdb4c9!important;box-shadow:none!important;font-size:18px!important}
+.mobile-bottom-nav button span{font-size:19px!important;line-height:1!important}
+.mobile-bottom-nav button small{font-size:10px!important;line-height:1.15!important;color:inherit!important;white-space:nowrap!important}
+.mobile-bottom-nav button.active{background:rgba(194,161,232,.16)!important;border-color:rgba(194,161,232,.28)!important;color:#e5cff8!important}
+body.auth-mode .mobile-bottom-nav,body.auth-mode #dashboard{display:none!important}
+@media(min-width:761px){#dashboard{max-width:1100px;margin:0 auto;padding:18px 18px 90px!important}.mobile-bottom-nav{left:50%!important;right:auto!important;bottom:14px!important;transform:translateX(-50%)!important;width:min(560px,calc(100% - 28px))!important;border:1px solid rgba(194,161,232,.25)!important;border-radius:16px!important}}
+
 </style>
 </head>
 
@@ -224,7 +285,6 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 <header>
  <div class="logo">🏆 BLASTING JUARA</div>
  <div class="header-actions">
-  <button id="supportTopButton" class="secondary hidden" type="button" onclick="showTab('support')">Pusat Bantuan</button>
   <div id="userLabel">Marketplace Campaign</div>
  </div>
 </header>
@@ -274,17 +334,27 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
   </div>
  </div>
 
- <nav class="box">
-  <button onclick="showTab('campaigns')">Campaign</button>
-  <button onclick="showTab('referral')">🎁 Referral</button>
-  <button class="notification-bell" onclick="showTab('notifications')">🔔 Notifikasi <span id="notificationBadge" class="notification-count hidden">0</span></button>
-  <button onclick="showTab('spin')">🎡 Spin Wheel</button>
-  <button onclick="showTab('whatsapp')">📱 WhatsApp</button>
-  <button onclick="showTab('wallet')">Saldo</button>
-  <button onclick="showTab('create')">Pasang Iklan</button>
-  <button id="adminButton" class="hidden" onclick="showTab('admin')">👑 ADMIN</button>
-  <button class="secondary" onclick="logout()">Keluar</button>
+ <nav class="box sidebar" aria-label="Navigasi utama">
+  <div class="sidebar-label">MENU UTAMA</div>
+  <button data-tab="campaigns" onclick="showTab('campaigns')"><span>▦</span> Marketplace Campaign</button>
+  <button data-tab="jobs" onclick="showTab('jobs')"><span>▣</span> Pekerjaan Saya</button>
+  <button data-tab="wallet" onclick="showTab('wallet')"><span>◈</span> Dompet & Transaksi</button>
+  <div class="sidebar-label">AKTIVITAS</div>
+  <button data-tab="whatsapp" onclick="showTab('whatsapp')"><span>◉</span> Tautkan WhatsApp</button>
+  <button data-tab="create" onclick="showTab('create')"><span>＋</span> Pasang Campaign</button>
+  <button data-tab="referral" onclick="showTab('referral')"><span>♧</span> Program Referral</button>
+  <button data-tab="spin" onclick="showTab('spin')"><span>✧</span> Spin Wheel</button>
+  <button data-tab="notifications" class="notification-bell" onclick="showTab('notifications')"><span>♢</span> Notifikasi <span id="notificationBadge" class="notification-count hidden">0</span></button>
+  <button data-tab="support" onclick="showTab('support')"><span>?</span> Pusat Bantuan</button>
+  <div class="sidebar-divider"></div>
+  <button id="adminButton" data-tab="admin" class="hidden" onclick="showTab('admin')"><span>♛</span> Panel Admin</button>
+  <button class="sidebar-logout" onclick="logout()"><span>↪</span> Keluar</button>
  </nav>
+
+ <section id="jobs" class="box tab hidden">
+  <div class="page-heading"><div><span class="eyebrow">AKTIVITAS AKUN</span><h2>Pekerjaan Saya</h2><p>Pantau pekerjaan yang sudah kamu ambil, status persetujuan, dan kirim laporan dari halaman ini.</p></div></div>
+  <div id="jobList">Memuat pekerjaan...</div>
+ </section>
 
  <section id="whatsapp" class="box tab hidden wa-box">
   <h2>📱 Tautkan WhatsApp</h2>
@@ -393,6 +463,19 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <button class="secondary" type="button" onclick="markAllNotificationsRead()">Tandai semua dibaca</button>
   </div>
   <div id="notificationList">Memuat notifikasi...</div>
+ </section>
+
+ <section id="more" class="box tab hidden">
+  <div class="page-heading"><div><span class="eyebrow">PUSAT FITUR</span><h2>Fitur Lainnya</h2><p>Akses layanan dan pengaturan tambahan Blasting Juara.</p></div></div>
+  <div class="feature-grid">
+   <button class="feature-tile" onclick="showTab('whatsapp')"><span>◉</span><strong>Tautkan WhatsApp</strong><small>Kelola perangkat tertaut</small></button>
+   <button class="feature-tile" onclick="showTab('referral')"><span>♧</span><strong>Program Referral</strong><small>Kode undangan dan bonus</small></button>
+   <button class="feature-tile" onclick="showTab('spin')"><span>✧</span><strong>Spin Wheel</strong><small>Masukkan kode hadiah</small></button>
+   <button class="feature-tile" onclick="showTab('notifications')"><span>♢</span><strong>Notifikasi</strong><small>Informasi akun terbaru</small></button>
+   <button class="feature-tile" onclick="showTab('support')"><span>?</span><strong>Pusat Bantuan</strong><small>Hubungi tim bantuan</small></button>
+   <button class="feature-tile" onclick="showTab('create')"><span>＋</span><strong>Pasang Campaign</strong><small>Buat promosi baru</small></button>
+   <button id="moreAdminTile" class="feature-tile hidden" onclick="showTab('admin')"><span>♛</span><strong>Panel Admin</strong><small>Kelola operasional platform</small></button>
+  </div>
  </section>
 
  <section id="campaigns" class="box tab">
@@ -578,6 +661,13 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 
   <button class="secondary" onclick="loadAdmin()">🔄 Refresh Data Admin</button>
  </section>
+
+ <nav class="mobile-bottom-nav" aria-label="Navigasi utama bawah">
+  <button data-tab="campaigns" onclick="showTab('campaigns')"><span>▦</span><small>Campaign</small></button>
+  <button data-tab="jobs" onclick="showTab('jobs')"><span>▣</span><small>Pekerjaan</small></button>
+  <button data-tab="wallet" onclick="showTab('wallet')"><span>◈</span><small>E-Wallet</small></button>
+  <button data-tab="more" onclick="showTab('more')"><span>☰</span><small>Lainnya</small></button>
+ </nav>
 </section>
 </main>
 
@@ -712,14 +802,16 @@ async function signInWithGoogle() {
 }
 
 function showTab(id) {
- document.querySelectorAll(".tab").forEach(element => {
-  element.classList.add("hidden");
+ const target = $(id);
+ if (!target) {
+  console.warn("Halaman tidak ditemukan:", id);
+  return;
+ }
+ document.querySelectorAll("#dashboard .tab").forEach(element => element.classList.add("hidden"));
+ target.classList.remove("hidden");
+ document.querySelectorAll("#dashboard nav button[data-tab]").forEach(button => {
+  button.classList.toggle("active", button.dataset.tab === id);
  });
-
- $(id).classList.remove("hidden");
- document.querySelectorAll("#dashboard > nav button").forEach(button => button.classList.remove("active"));
- const activeButton = document.querySelector('#dashboard > nav button[onclick="showTab(\'' + id + '\')"]');
- if (activeButton) activeButton.classList.add("active");
 
  if (id === "campaigns") loadCampaigns();
  if (id === "jobs") loadJobs();
@@ -729,7 +821,6 @@ function showTab(id) {
  if (id === "referral") loadReferral();
  if (id === "support") loadSupportTickets();
  if (id === "whatsapp") loadWhatsAppStatus();
-
  if (id === "admin") {
   if (!isAdmin) {
    notify("Akses admin ditolak.");
@@ -842,39 +933,76 @@ $("broadcastNotificationForm").addEventListener("submit",sendBroadcastNotificati
 // REFERRAL
 // =========================
 async function initializeReferral() {
- if (!user) return;
- const {error:ensureError} = await db.rpc("ensure_my_referral_profile");
- if (ensureError) console.warn("Referral profile:",ensureError.message);
- const code = String(user.user_metadata?.referral_code || referralCodeFromUrl || "").trim().toUpperCase();
- if (code) {
-  const {data,error} = await db.rpc("register_my_referral",{p_referral_code:code});
-  if (error) console.warn("Attribution referral:",error.message);
-  else if (data?.registered) notify("Kode undangan berhasil diterapkan.");
+ if (!user) return null;
+ let ownCode = null;
+ try {
+  const {data,error} = await db.rpc("ensure_my_referral_profile");
+  if (error) throw error;
+  ownCode = typeof data === "string" ? data : (data?.code || null);
+ } catch (error) {
+  console.warn("Referral profile:", error.message || error);
  }
+ const invitedBy = String(user.user_metadata?.referral_code || referralCodeFromUrl || "").trim().toUpperCase();
+ if (invitedBy) {
+  try {
+   const {data,error} = await db.rpc("register_my_referral",{p_referral_code:invitedBy});
+   if (error) throw error;
+   if (data?.registered) notify("Kode undangan berhasil diterapkan.");
+  } catch (error) {
+   console.warn("Attribution referral:", error.message || error);
+  }
+ }
+ return ownCode;
 }
 
 async function loadReferral() {
  if (!user) return;
  const codeBox = $("myReferralCode");
  const linkBox = $("myReferralLink");
+ const historyBox = $("referralHistory");
  codeBox.textContent = "Memuat...";
- const {data:profile,error:profileError} = await db.from("referral_codes").select("code").eq("user_id",user.id).maybeSingle();
- if (profileError) { codeBox.textContent = "Belum tersedia"; $("referralHistory").textContent = "Gagal memuat referral: "+profileError.message; return; }
- if (!profile?.code) { codeBox.textContent = "Menyiapkan kode..."; await initializeReferral(); return loadReferral(); }
- codeBox.textContent = profile.code;
- linkBox.textContent = window.location.origin + window.location.pathname + "?ref=" + encodeURIComponent(profile.code);
- const {data:rows,error} = await db.from("referrals").select("id,referred_user_id,status,reward_amount,created_at,rewarded_at").eq("referrer_id",user.id).order("created_at",{ascending:false});
- if (error) { $("referralHistory").textContent = "Gagal memuat riwayat: " + error.message; return; }
- const referrals = rows || [];
- const rewarded = referrals.filter(x=>x.status === "rewarded");
- $("referralTotal").textContent = String(rewarded.length);
- $("referralEarnings").textContent = rupiah(rewarded.reduce((sum,x)=>sum+Number(x.reward_amount||0),0));
- if (!referrals.length) { $("referralHistory").innerHTML='<div class="transaction-empty">Belum ada teman yang bergabung melalui kode referral Anda.</div>'; return; }
- $("referralHistory").innerHTML = referrals.map((item,index)=>{
-  const status = item.status === "rewarded" ? "Bonus diberikan" : "Menunggu persyaratan";
-  const statusClass = item.status === "rewarded" ? "status-success" : "status-pending";
-  return `<div class="referral-row"><div class="referral-row-top"><strong>Undangan #${referrals.length-index}</strong><span class="${statusClass}">${status}</span></div><div class="support-ticket-meta">Bergabung: ${escapeHTML(dateTime(item.created_at))}</div><div class="support-ticket-meta">Bonus: ${rupiah(item.reward_amount||0)}</div></div>`;
- }).join("");
+ try {
+  let {data:profile,error:profileError} = await db.from("referral_codes").select("code").eq("user_id",user.id).maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile?.code) {
+   codeBox.textContent = "Menyiapkan kode...";
+   const createdCode = await initializeReferral();
+   if (createdCode) profile = {code:createdCode};
+   else {
+    const retry = await db.from("referral_codes").select("code").eq("user_id",user.id).maybeSingle();
+    if (retry.error) throw retry.error;
+    profile = retry.data;
+   }
+  }
+  if (!profile?.code) {
+   codeBox.textContent = "Kode belum tersedia";
+   linkBox.textContent = "Silakan muat ulang beberapa saat lagi.";
+   historyBox.textContent = "Kode referral belum berhasil dibuat. Fitur lain tetap dapat digunakan.";
+   return;
+  }
+  codeBox.textContent = profile.code;
+  linkBox.textContent = window.location.origin + window.location.pathname + "?ref=" + encodeURIComponent(profile.code);
+  const {data:rows,error} = await db.from("referrals").select("id,referred_user_id,status,reward_amount,created_at,rewarded_at").eq("referrer_id",user.id).order("created_at",{ascending:false});
+  if (error) throw error;
+  const referrals = rows || [];
+  const rewarded = referrals.filter(x=>x.status === "rewarded");
+  $("referralTotal").textContent = String(rewarded.length);
+  $("referralEarnings").textContent = rupiah(rewarded.reduce((sum,x)=>sum+Number(x.reward_amount||0),0));
+  if (!referrals.length) {
+   historyBox.innerHTML='<div class="transaction-empty">Belum ada teman yang bergabung melalui kode referral Anda.</div>';
+   return;
+  }
+  historyBox.innerHTML = referrals.map((item,index)=>{
+   const status = item.status === "rewarded" ? "Bonus diberikan" : "Menunggu persyaratan";
+   const statusClass = item.status === "rewarded" ? "status-success" : "status-pending";
+   return `<div class="referral-row"><div class="referral-row-top"><strong>Undangan #${referrals.length-index}</strong><span class="${statusClass}">${status}</span></div><div class="support-ticket-meta">Bergabung: ${escapeHTML(dateTime(item.created_at))}</div><div class="support-ticket-meta">Bonus: ${rupiah(item.reward_amount||0)}</div></div>`;
+  }).join("");
+ } catch (error) {
+  codeBox.textContent = "Belum tersedia";
+  linkBox.textContent = "Link referral belum tersedia.";
+  historyBox.textContent = "Gagal memuat referral: " + (error.message || "Terjadi kesalahan.");
+  console.error("Referral:", error);
+ }
 }
 function copyReferralCode(){const v=$("myReferralCode").textContent;if(!v||v==="Memuat..."||v==="Belum tersedia")return;copyText(v,"Kode referral berhasil disalin.");}
 function copyReferralLink(){const v=$("myReferralLink").textContent;if(!v||v==="Menyiapkan link...")return;copyText(v,"Link undangan berhasil disalin.");}
@@ -1633,6 +1761,7 @@ async function checkAdmin() {
 
  if (isAdmin) {
   $("adminButton").classList.remove("hidden");
+  $("moreAdminTile")?.classList.remove("hidden");
  }
 }
 
@@ -1716,8 +1845,7 @@ $("authForm").onsubmit = async event => {
     email,
     password,
     options: {
-     data: { full_name: fullName, referral_code: referralCodeFromUrl || null },
-     emailRedirectTo: window.location.origin + window.location.pathname
+     data: { full_name: fullName, referral_code: referralCodeFromUrl || null }
     }
    });
   } else {
@@ -1727,8 +1855,7 @@ $("authForm").onsubmit = async event => {
   if (result.error) throw result.error;
 
   if (mode === "signup" && !result.data.session) {
-   form.reset();
-   notify("Pendaftaran berhasil. Silakan periksa email untuk verifikasi akun, lalu login.");
+   notify("Akun berhasil didaftarkan. Jika konfirmasi email aktif, buka email verifikasi terlebih dahulu, lalu login.");
    return;
   }
 
@@ -2808,5 +2935,3 @@ setInterval(() => { if (user) refreshNotificationBadge(); }, 45000);
 </script>
 </body>
 </html>
-
-
