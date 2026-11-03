@@ -192,40 +192,6 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 .referral-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}.referral-summary-grid .card{margin:0}.referral-code{font-size:24px;font-weight:850;letter-spacing:.12em;color:#e5cff8;margin:12px 0;overflow-wrap:anywhere}.referral-link{font-size:12px;line-height:1.5;color:#d6c6e5;overflow-wrap:anywhere;margin:12px 0;min-height:36px}.referral-terms{background:#1c1728;border:1px solid rgba(194,161,232,.2);border-radius:13px;padding:15px;margin:16px 0}.referral-terms li{color:#d7cddd;line-height:1.6;margin:7px 0}.referral-row,.support-ticket{background:#1c1728;border:1px solid rgba(194,161,232,.17);border-radius:13px;padding:14px;margin:10px 0}.referral-row-top,.support-ticket-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.support-ticket{cursor:pointer}.support-ticket:hover{border-color:rgba(194,161,232,.5)}.support-status{font-size:11px;border-radius:20px;padding:5px 9px;background:#40334e;color:#e6d8f2}.support-status.closed{background:#294b3e;color:#bde4ce}.support-conversation{border:1px solid rgba(194,161,232,.2);border-radius:14px;padding:14px;margin-top:16px;background:#171321}.support-conversation-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.support-message-list{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;padding:12px 0}.support-message{max-width:88%;padding:11px 13px;border-radius:13px;background:#30243f;color:#f3eff7;overflow-wrap:anywhere;line-height:1.5}.support-message.user{align-self:flex-end;background:#284b42}.support-message.admin{align-self:flex-start;background:#30243f}.support-message small{display:block;margin-top:6px;font-size:10px;opacity:.75}.support-ticket-meta{font-size:12px;color:#a99db6;margin-top:7px}
 @media(max-width:520px){.header-actions{gap:5px}.header-actions button{font-size:11px;padding:9px 10px}.referral-summary-grid{grid-template-columns:1fr 1fr}.support-message{max-width:95%}}
 
-
-/* NAVIGASI TERPISAH: sidebar desktop dan menu bawah mobile */
-#dashboard{display:grid;grid-template-columns:228px minmax(0,1fr);gap:14px;align-items:start}
-#dashboard>.box:first-child{grid-column:1/-1;margin:0 0 2px}
-#dashboard>nav.sidebar{grid-column:1;grid-row:2;position:sticky;top:12px;display:flex;flex-direction:column;gap:5px;padding:13px;margin:0;border-radius:16px}
-#dashboard>nav.sidebar button{width:100%;min-width:0;flex:none;display:flex;align-items:center;gap:11px;text-align:left;margin:0;padding:11px 12px;border:1px solid transparent;background:transparent;color:#c9bfd4;font-size:12px;border-radius:10px}
-#dashboard>nav.sidebar button span{width:20px;text-align:center;font-size:17px;color:#d7c1ed}
-#dashboard>nav.sidebar button:hover,#dashboard>nav.sidebar button.active{background:linear-gradient(90deg,rgba(194,161,232,.2),rgba(194,161,232,.04));border-color:rgba(194,161,232,.24);color:#f3eff7}
-.sidebar-label{padding:9px 10px 5px;color:#9f91ad;font-size:9px;font-weight:800;letter-spacing:.13em}
-.sidebar-divider{height:1px;background:rgba(194,161,232,.16);margin:7px 3px}
-#dashboard>nav.sidebar button.sidebar-logout{color:#e5a4b3;margin-top:2px}
-#dashboard>.tab{grid-column:2;grid-row:auto;min-width:0;margin:0;padding:20px;border-radius:16px}
-#dashboard>.tab#campaigns{grid-column:2}
-.page-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
-.page-heading h2{margin:5px 0 7px}.page-heading p{margin:0;max-width:680px}
-.eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;color:#bda5d5}
-.feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
-.feature-tile{min-width:0;min-height:116px;margin:0;padding:16px;display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left;background:#1c1728;border:1px solid rgba(194,161,232,.2);color:#f3eff7;border-radius:14px}
-.feature-tile>span{font-size:22px;color:#d7c1ed}.feature-tile strong{font-size:13px}.feature-tile small{font-size:11px;color:#a99db6;font-weight:400}
-.mobile-bottom-nav{display:none}
-@media(max-width:760px){
- #dashboard{display:block;padding-bottom:82px}
- #dashboard>.box:first-child{margin:0 0 12px}
- #dashboard>nav.sidebar{display:none}
- #dashboard>.tab{margin:12px 0;padding:16px}
- #dashboard>.tab#campaigns{margin-top:0}
- .mobile-bottom-nav{position:fixed;z-index:5000;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:4px;padding:8px 7px calc(8px + env(safe-area-inset-bottom));background:rgba(29,23,40,.98);border-top:1px solid rgba(194,161,232,.25);backdrop-filter:blur(14px)}
- .mobile-bottom-nav button{flex:1;min-width:0;margin:0;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;color:#a99db6;border:1px solid transparent;font-size:18px}
- .mobile-bottom-nav button.active{background:rgba(194,161,232,.13);border-color:rgba(194,161,232,.2);color:#e5cff8}
- .mobile-bottom-nav button small{font-size:10px;color:inherit}
- .feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:380px){.feature-grid{grid-template-columns:1fr}.feature-tile{min-height:92px}}
-
 </style>
 </head>
 
@@ -258,6 +224,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 <header>
  <div class="logo">🏆 BLASTING JUARA</div>
  <div class="header-actions">
+  <button id="supportTopButton" class="secondary hidden" type="button" onclick="showTab('support')">Pusat Bantuan</button>
   <div id="userLabel">Marketplace Campaign</div>
  </div>
 </header>
@@ -307,27 +274,17 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
   </div>
  </div>
 
- <nav class="box sidebar" aria-label="Navigasi utama">
-  <div class="sidebar-label">MENU UTAMA</div>
-  <button data-tab="campaigns" onclick="showTab('campaigns')"><span>▦</span> Marketplace Campaign</button>
-  <button data-tab="jobs" onclick="showTab('jobs')"><span>▣</span> Pekerjaan Saya</button>
-  <button data-tab="wallet" onclick="showTab('wallet')"><span>◈</span> Dompet & Transaksi</button>
-  <div class="sidebar-label">AKTIVITAS</div>
-  <button data-tab="whatsapp" onclick="showTab('whatsapp')"><span>◉</span> Tautkan WhatsApp</button>
-  <button data-tab="create" onclick="showTab('create')"><span>＋</span> Pasang Campaign</button>
-  <button data-tab="referral" onclick="showTab('referral')"><span>♧</span> Program Referral</button>
-  <button data-tab="spin" onclick="showTab('spin')"><span>✧</span> Spin Wheel</button>
-  <button data-tab="notifications" class="notification-bell" onclick="showTab('notifications')"><span>♢</span> Notifikasi <span id="notificationBadge" class="notification-count hidden">0</span></button>
-  <button data-tab="support" onclick="showTab('support')"><span>?</span> Pusat Bantuan</button>
-  <div class="sidebar-divider"></div>
-  <button id="adminButton" data-tab="admin" class="hidden" onclick="showTab('admin')"><span>♛</span> Panel Admin</button>
-  <button class="sidebar-logout" onclick="logout()"><span>↪</span> Keluar</button>
+ <nav class="box">
+  <button onclick="showTab('campaigns')">Campaign</button>
+  <button onclick="showTab('referral')">🎁 Referral</button>
+  <button class="notification-bell" onclick="showTab('notifications')">🔔 Notifikasi <span id="notificationBadge" class="notification-count hidden">0</span></button>
+  <button onclick="showTab('spin')">🎡 Spin Wheel</button>
+  <button onclick="showTab('whatsapp')">📱 WhatsApp</button>
+  <button onclick="showTab('wallet')">Saldo</button>
+  <button onclick="showTab('create')">Pasang Iklan</button>
+  <button id="adminButton" class="hidden" onclick="showTab('admin')">👑 ADMIN</button>
+  <button class="secondary" onclick="logout()">Keluar</button>
  </nav>
-
- <section id="jobs" class="box tab hidden">
-  <div class="page-heading"><div><span class="eyebrow">AKTIVITAS AKUN</span><h2>Pekerjaan Saya</h2><p>Pantau pekerjaan yang sudah kamu ambil, status persetujuan, dan kirim laporan dari halaman ini.</p></div></div>
-  <div id="jobList">Memuat pekerjaan...</div>
- </section>
 
  <section id="whatsapp" class="box tab hidden wa-box">
   <h2>📱 Tautkan WhatsApp</h2>
@@ -436,19 +393,6 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <button class="secondary" type="button" onclick="markAllNotificationsRead()">Tandai semua dibaca</button>
   </div>
   <div id="notificationList">Memuat notifikasi...</div>
- </section>
-
- <section id="more" class="box tab hidden">
-  <div class="page-heading"><div><span class="eyebrow">PUSAT FITUR</span><h2>Fitur Lainnya</h2><p>Akses layanan dan pengaturan tambahan Blasting Juara.</p></div></div>
-  <div class="feature-grid">
-   <button class="feature-tile" onclick="showTab('whatsapp')"><span>◉</span><strong>Tautkan WhatsApp</strong><small>Kelola perangkat tertaut</small></button>
-   <button class="feature-tile" onclick="showTab('referral')"><span>♧</span><strong>Program Referral</strong><small>Kode undangan dan bonus</small></button>
-   <button class="feature-tile" onclick="showTab('spin')"><span>✧</span><strong>Spin Wheel</strong><small>Masukkan kode hadiah</small></button>
-   <button class="feature-tile" onclick="showTab('notifications')"><span>♢</span><strong>Notifikasi</strong><small>Informasi akun terbaru</small></button>
-   <button class="feature-tile" onclick="showTab('support')"><span>?</span><strong>Pusat Bantuan</strong><small>Hubungi tim bantuan</small></button>
-   <button class="feature-tile" onclick="showTab('create')"><span>＋</span><strong>Pasang Campaign</strong><small>Buat promosi baru</small></button>
-   <button id="moreAdminTile" class="feature-tile hidden" onclick="showTab('admin')"><span>♛</span><strong>Panel Admin</strong><small>Kelola operasional platform</small></button>
-  </div>
  </section>
 
  <section id="campaigns" class="box tab">
@@ -634,13 +578,6 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 
   <button class="secondary" onclick="loadAdmin()">🔄 Refresh Data Admin</button>
  </section>
-
- <nav class="mobile-bottom-nav" aria-label="Navigasi bawah">
-  <button data-tab="campaigns" onclick="showTab('campaigns')"><span>▦</span><small>Campaign</small></button>
-  <button data-tab="jobs" onclick="showTab('jobs')"><span>▣</span><small>Pekerjaan</small></button>
-  <button data-tab="wallet" onclick="showTab('wallet')"><span>◈</span><small>Dompet</small></button>
-  <button data-tab="more" onclick="showTab('more')"><span>⋯</span><small>Lainnya</small></button>
- </nav>
 </section>
 </main>
 
@@ -775,16 +712,14 @@ async function signInWithGoogle() {
 }
 
 function showTab(id) {
- const target = $(id);
- if (!target) {
-  console.warn("Halaman tidak ditemukan:", id);
-  return;
- }
- document.querySelectorAll("#dashboard .tab").forEach(element => element.classList.add("hidden"));
- target.classList.remove("hidden");
- document.querySelectorAll("#dashboard nav button[data-tab]").forEach(button => {
-  button.classList.toggle("active", button.dataset.tab === id);
+ document.querySelectorAll(".tab").forEach(element => {
+  element.classList.add("hidden");
  });
+
+ $(id).classList.remove("hidden");
+ document.querySelectorAll("#dashboard > nav button").forEach(button => button.classList.remove("active"));
+ const activeButton = document.querySelector('#dashboard > nav button[onclick="showTab(\'' + id + '\')"]');
+ if (activeButton) activeButton.classList.add("active");
 
  if (id === "campaigns") loadCampaigns();
  if (id === "jobs") loadJobs();
@@ -794,6 +729,7 @@ function showTab(id) {
  if (id === "referral") loadReferral();
  if (id === "support") loadSupportTickets();
  if (id === "whatsapp") loadWhatsAppStatus();
+
  if (id === "admin") {
   if (!isAdmin) {
    notify("Akses admin ditolak.");
@@ -1697,7 +1633,6 @@ async function checkAdmin() {
 
  if (isAdmin) {
   $("adminButton").classList.remove("hidden");
-  $("moreAdminTile")?.classList.remove("hidden");
  }
 }
 
@@ -2875,21 +2810,3 @@ setInterval(() => { if (user) refreshNotificationBadge(); }, 45000);
 </html>
 
 
-
-<style>
-/* FINAL NAVIGATION: MENU BAWAH SAJA DI SEMUA UKURAN LAYAR */
-#dashboard{display:block!important;padding:0 0 100px!important;min-width:0}
-#dashboard>nav.sidebar{display:none!important}
-#dashboard>.box:first-child{display:flex;grid-column:auto;width:100%;margin:0 0 14px;}
-#dashboard>.tab{display:block;width:100%;margin:12px 0;padding:20px;min-width:0;animation:bjFade .18s ease}
-#dashboard>.tab.hidden{display:none!important}
-.mobile-bottom-nav{position:fixed!important;z-index:5000;left:50%!important;right:auto!important;bottom:0!important;transform:translateX(-50%);width:min(100%,760px);display:flex!important;justify-content:space-around;gap:6px;padding:9px 10px calc(9px + env(safe-area-inset-bottom));background:rgba(29,23,40,.98);border:1px solid rgba(194,161,232,.24);border-bottom:0;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.28);backdrop-filter:blur(16px)}
-.mobile-bottom-nav button{flex:1;min-width:0;margin:0;padding:7px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;color:#a99db6;border:1px solid transparent;border-radius:11px;font-size:19px;box-shadow:none}
-.mobile-bottom-nav button span{font-size:20px;line-height:1.1}
-.mobile-bottom-nav button small{font-size:10px;color:inherit;white-space:nowrap}
-.mobile-bottom-nav button.active{background:rgba(194,161,232,.15);border-color:rgba(194,161,232,.25);color:#e5cff8}
-.mobile-bottom-nav button:hover{transform:none;filter:none}
-@media(min-width:761px){#dashboard{padding-bottom:110px!important}#dashboard>.tab{padding:24px}.mobile-bottom-nav{bottom:14px!important;border:1px solid rgba(194,161,232,.24);border-radius:16px;padding:9px 12px}}
-@media(max-width:760px){#dashboard{display:block!important;padding:0 0 90px!important}#dashboard>.box:first-child{display:block;width:100%;padding:18px;margin:0 0 12px}#dashboard>.box:first-child .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;margin-top:15px}#dashboard>.tab{width:100%;margin:12px 0;padding:16px}}
-@media(max-width:380px){.mobile-bottom-nav{gap:2px;padding-left:5px;padding-right:5px}.mobile-bottom-nav button small{font-size:9px}}
-</style>
