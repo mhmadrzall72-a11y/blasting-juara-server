@@ -2064,7 +2064,30 @@ async function loadJobs() {
  if (error) { box.textContent = error.message; return; }
  box.innerHTML = "";
  $("jobCount").textContent = data.length;
- if (!data.length) { box.textContent = "Belum ada job."; return; }
+ if (!data.length) {
+  const empty = document.createElement("div");
+  empty.className = "transaction-empty job-empty-state";
+  empty.style.textAlign = "center";
+  empty.style.padding = "28px 18px";
+  const icon = document.createElement("div");
+  icon.textContent = "📋";
+  icon.style.fontSize = "38px";
+  icon.style.marginBottom = "10px";
+  const title = document.createElement("h3");
+  title.textContent = "Belum Ada Pekerjaan";
+  title.style.margin = "0 0 8px";
+  const description = document.createElement("p");
+  description.textContent = "Yuk, ambil pekerjaan yang tersedia di menu Campaign. Setelah kamu mengambil pekerjaan, detail dan statusnya akan tampil di sini.";
+  description.style.margin = "0 auto 16px";
+  description.style.maxWidth = "420px";
+  const campaignButton = document.createElement("button");
+  campaignButton.type = "button";
+  campaignButton.textContent = "LIHAT CAMPAIGN";
+  campaignButton.addEventListener("click", () => showTab("campaigns"));
+  empty.append(icon, title, description, campaignButton);
+  box.appendChild(empty);
+  return;
+ }
  for (const application of data) {
   const campaign = application.campaigns || {};
   const card = document.createElement("div"); card.className = "card";
