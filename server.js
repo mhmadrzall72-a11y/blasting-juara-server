@@ -170,6 +170,7 @@ async function requireUser(req, res, next) {
 // =====================================
 // ADMIN AUTHORIZATION
 // =====================================
+
 async function requireAdmin(req, res, next) {
   try {
     const { data, error } = await req.admin
@@ -179,13 +180,20 @@ async function requireAdmin(req, res, next) {
       .maybeSingle();
 
     if (error) throw error;
+
     if (data?.role !== "admin") {
-      return res.status(403).json({ error: "Akses khusus admin." });
+      return res.status(403).json({
+        error: "Akses khusus admin."
+      });
     }
+
     next();
   } catch (error) {
     console.error("Admin authorization:", error.message);
-    return res.status(500).json({ error: "Gagal memverifikasi hak akses admin." });
+
+    return res.status(500).json({
+      error: "Gagal memverifikasi hak akses admin."
+    });
   }
 }
 
@@ -261,7 +269,8 @@ async function createDatabaseAuthState(admin, userId) {
 
           if (error) throw error;
         }
-                      if (upserts.length) {
+
+        if (upserts.length) {
           const { error } = await admin
             .from("whatsapp_auth_keys")
             .upsert(upserts, {
@@ -427,7 +436,6 @@ function waitForPairingReady(userId, sock, timeoutMs = 60000) {
 // =====================================
 
 async function startWhatsApp(userId, admin, mode = "qr") {
-  // QR dan Pairing Code harus memakai socket dengan mode autentikasi terpisah.
   let existing = sockets.get(userId);
 
   if (existing && socketModes.get(userId) === mode) {
@@ -438,7 +446,11 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     sockets.delete(userId);
     socketModes.delete(userId);
     pairingReady.delete(userId);
-    try { existing.end(undefined); } catch {}
+
+    try {
+      existing.end(undefined);
+    } catch {}
+
     existing = null;
   }
 
@@ -460,9 +472,13 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     if (sockets.get(userId) === pendingSocket) {
       sockets.delete(userId);
     }
+
     socketModes.delete(userId);
     pairingReady.delete(userId);
-    try { pendingSocket?.end(undefined); } catch {}
+
+    try {
+      pendingSocket?.end(undefined);
+    } catch {}
   }
 
   const task = (async () => {
@@ -496,10 +512,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       );
     }
 
-    // Pairing Code memakai identitas browser desktop standar Baileys.
-    // QR tetap memakai identitas Blasting Juara yang lama.
-    // WhatsApp sekarang menolak payload platform WEB untuk pairing baru.
-    // Dependency Baileys di package.json juga diarahkan ke patch MACOS.
     const browser = Browsers?.macOS
       ? Browsers.macOS("Desktop")
       : ["macOS", "Desktop", "14.4.1"];
@@ -525,8 +537,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     socketModes.set(userId, mode);
     pairingReady.delete(userId);
 
-    // Serialkan penyimpanan kredensial agar event 515 tidak mendahului
-    // proses tulis kredensial pairing ke Supabase.
     let credsSavePromise = Promise.resolve();
 
     sock.ev.on("creds.update", () => {
@@ -537,22 +547,33 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         });
     });
 
-    // Delivery receipt Baileys: ACK >= 3 menunjukkan perangkat penerima telah menerima pesan.
     sock.ev.on("messages.update", async updates => {
       try {
         for (const item of updates || []) {
           const messageId = item?.key?.id;
           const ackStatus = Number(item?.update?.status || 0);
+
           if (!messageId || ackStatus < 3) continue;
+
           const { data, error } = await admin
             .from("campaign_delivery_queue")
-            .update({ status: "delivered", delivered_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .update({
+              status: "delivered",
+              delivered_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
             .eq("message_id", messageId)
             .eq("worker_id", userId)
             .in("status", ["sending", "sent", "delivered"])
             .select("id");
-          if (error) console.error("Simpan delivery receipt:", error.message);
-          if (!error && !data?.length && campaignDeliveryRuns.has(userId)) pendingDeliveryAcks.add(messageId);
+
+          if (error) {
+            console.error("Simpan delivery receipt:", error.message);
+          }
+
+          if (!error && !data?.length && campaignDeliveryRuns.has(userId)) {
+            pendingDeliveryAcks.add(messageId);
+          }
         }
       } catch (error) {
         console.error("Proses delivery receipt:", error.message);
@@ -563,12 +584,9 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       if (sockets.get(userId) !== sock) return;
 
       if (update.qr) {
-
-                    const previous = liveState.get(userId);
+        const previous = liveState.get(userId);
 
         if (mode === "pairing") {
-          // Event QR hanya dipakai sebagai tanda socket siap; QR tidak
-          // dikirim/dipakai ketika pengguna memilih Pairing Code.
           pairingReady.add(userId);
 
           liveState.set(userId, {
@@ -635,7 +653,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       if (update.connection === "close") {
         if (sockets.get(userId) !== sock) return;
 
-        // Simpan mode sebelum map dihapus agar mode pairing tidak tertukar.
         const reconnectMode = socketModes.get(userId) || mode;
 
         sockets.delete(userId);
@@ -648,8 +665,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         const errorMessage =
           update.lastDisconnect?.error?.message || "Tidak diketahui";
 
-        // Pada percobaan Pairing Code, 401 Connection Failure tidak otomatis
-        // berarti sesi lama logout. Jangan hapus kredensial hanya karena 401.
         const authRejected = code === DisconnectReason.loggedOut;
 
         const restartRequired = code === DisconnectReason.restartRequired;
@@ -679,19 +694,16 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         );
 
         if (authRejected) {
-          // Jangan hapus kredensial Supabase otomatis. Simpan untuk
-          // pemeriksaan manual agar sesi QR yang lama tidak hilang.
           clearReconnect(userId);
+
           console.error(
             "WhatsApp menolak autentikasi. Kredensial tetap disimpan:",
             userId
           );
+
           return;
         }
 
-        // 515 adalah sinyal resmi WhatsApp untuk membuka socket baru
-        // memakai kredensial hasil pairing yang baru saja disimpan.
-        // QR tetap memakai perilaku reconnect lama (5 detik).
         if (
           !manualDisconnect.has(userId) &&
           (reconnectMode === "qr" || shouldRestartPairing)
@@ -699,6 +711,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           clearReconnect(userId);
 
           const reconnectDelay = shouldRestartPairing ? 1000 : 5000;
+
           const timer = setTimeout(async () => {
             reconnectTimers.delete(userId);
 
@@ -738,10 +751,16 @@ async function startWhatsApp(userId, admin, mode = "qr") {
 // =====================================
 // ADMIN: KELOLA AKUN PENGGUNA
 // =====================================
+
 app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
   try {
     const perPage = 1000;
-    const { data, error } = await req.admin.auth.admin.listUsers({ page: 1, perPage });
+
+    const { data, error } = await req.admin.auth.admin.listUsers({
+      page: 1,
+      perPage
+    });
+
     if (error) throw error;
 
     const authUsers = data?.users || [];
@@ -753,20 +772,38 @@ app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
         .from("profiles")
         .select("*")
         .in("id", ids);
+
       if (profileError) throw profileError;
+
       profileRows = profiles || [];
     }
 
-    const profileMap = new Map(profileRows.map(row => [row.id, row]));
+    const profileMap = new Map(
+      profileRows.map(row => [row.id, row])
+    );
+
     const now = Date.now();
+
     const users = authUsers.map(account => {
       const profile = profileMap.get(account.id) || {};
       const bannedUntil = account.banned_until || null;
-      const disabled = profile.is_active === false || Boolean(bannedUntil && new Date(bannedUntil).getTime() > now);
+
+      const disabled =
+        profile.is_active === false ||
+        Boolean(
+          bannedUntil &&
+          new Date(bannedUntil).getTime() > now
+        );
+
       return {
         id: account.id,
         email: account.email || "",
-        full_name: profile.full_name || profile.name || account.user_metadata?.full_name || account.user_metadata?.name || "",
+        full_name:
+          profile.full_name ||
+          profile.name ||
+          account.user_metadata?.full_name ||
+          account.user_metadata?.name ||
+          "",
         role: profile.role || "user",
         created_at: account.created_at || null,
         last_sign_in_at: account.last_sign_in_at || null,
@@ -774,11 +811,23 @@ app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
       };
     });
 
-    users.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    return res.json({ users, count: users.length, limit: perPage });
+    users.sort(
+      (a, b) =>
+        new Date(b.created_at || 0) -
+        new Date(a.created_at || 0)
+    );
+
+    return res.json({
+      users,
+      count: users.length,
+      limit: perPage
+    });
   } catch (error) {
     console.error("Admin list users:", error);
-    return res.status(500).json({ error: error.message || "Gagal mengambil daftar akun." });
+
+    return res.status(500).json({
+      error: error.message || "Gagal mengambil daftar akun."
+    });
   }
 });
 
@@ -786,61 +835,117 @@ app.post("/admin/users/:id/status", requireUser, requireAdmin, async (req, res) 
   try {
     const targetId = String(req.params.id || "");
     const disabled = req.body?.disabled;
-    if (!targetId) return res.status(400).json({ error: "ID akun tidak valid." });
-    if (typeof disabled !== "boolean") return res.status(400).json({ error: "Status akun tidak valid." });
-    if (targetId === req.user.id) return res.status(400).json({ error: "Admin tidak dapat menonaktifkan akunnya sendiri." });
+
+    if (!targetId) {
+      return res.status(400).json({ error: "ID akun tidak valid." });
+    }
+
+    if (typeof disabled !== "boolean") {
+      return res.status(400).json({ error: "Status akun tidak valid." });
+    }
+
+    if (targetId === req.user.id) {
+      return res.status(400).json({
+        error: "Admin tidak dapat menonaktifkan akunnya sendiri."
+      });
+    }
 
     const { data: targetProfile, error: targetError } = await req.admin
       .from("profiles")
       .select("role,is_active")
       .eq("id", targetId)
       .maybeSingle();
-    if (targetError) throw targetError;
-    if (targetProfile?.role === "admin") return res.status(403).json({ error: "Akun admin dilindungi dan tidak dapat diubah dari menu ini." });
 
-    // Sinkronkan kolom profil dan status Supabase Auth agar daftar admin
-    // tetap konsisten dengan kebijakan akses aplikasi.
+    if (targetError) throw targetError;
+
+    if (targetProfile?.role === "admin") {
+      return res.status(403).json({
+        error: "Akun admin dilindungi dan tidak dapat diubah dari menu ini."
+      });
+    }
+
     const { error: profileUpdateError } = await req.admin
       .from("profiles")
       .update({ is_active: !disabled })
       .eq("id", targetId);
+
     if (profileUpdateError) throw profileUpdateError;
 
-    const { data, error } = await req.admin.auth.admin.updateUserById(targetId, {
-      ban_duration: disabled ? "876000h" : "none"
-    });
+    const { data, error } = await req.admin.auth.admin.updateUserById(
+      targetId,
+      {
+        ban_duration: disabled ? "876000h" : "none"
+      }
+    );
+
     if (error) {
-      // Kembalikan status profil jika perubahan Auth gagal.
-      await req.admin.from("profiles").update({ is_active: targetProfile?.is_active !== false }).eq("id", targetId);
+      await req.admin
+        .from("profiles")
+        .update({
+          is_active: targetProfile?.is_active !== false
+        })
+        .eq("id", targetId);
+
       throw error;
     }
-    return res.json({ success: true, disabled, userId: data?.user?.id || targetId });
+
+    return res.json({
+      success: true,
+      disabled,
+      userId: data?.user?.id || targetId
+    });
   } catch (error) {
     console.error("Admin update user status:", error);
-    return res.status(500).json({ error: error.message || "Gagal mengubah status akun." });
+
+    return res.status(500).json({
+      error: error.message || "Gagal mengubah status akun."
+    });
   }
 });
 
 app.delete("/admin/users/:id", requireUser, requireAdmin, async (req, res) => {
   try {
     const targetId = String(req.params.id || "");
-    if (!targetId) return res.status(400).json({ error: "ID akun tidak valid." });
-    if (targetId === req.user.id) return res.status(400).json({ error: "Admin tidak dapat menghapus akunnya sendiri." });
+
+    if (!targetId) {
+      return res.status(400).json({ error: "ID akun tidak valid." });
+    }
+
+    if (targetId === req.user.id) {
+      return res.status(400).json({
+        error: "Admin tidak dapat menghapus akunnya sendiri."
+      });
+    }
 
     const { data: targetProfile, error: targetError } = await req.admin
       .from("profiles")
       .select("role")
       .eq("id", targetId)
       .maybeSingle();
+
     if (targetError) throw targetError;
-    if (targetProfile?.role === "admin") return res.status(403).json({ error: "Akun admin dilindungi dan tidak dapat dihapus dari menu ini." });
+
+    if (targetProfile?.role === "admin") {
+      return res.status(403).json({
+        error: "Akun admin dilindungi dan tidak dapat dihapus dari menu ini."
+      });
+    }
 
     const { error } = await req.admin.auth.admin.deleteUser(targetId);
+
     if (error) throw error;
-    return res.json({ success: true, deletedUserId: targetId });
+
+    return res.json({
+      success: true,
+      deletedUserId: targetId
+    });
   } catch (error) {
     console.error("Admin delete user:", error);
-    return res.status(500).json({ error: error.message || "Gagal menghapus akun. Periksa relasi data pengguna di database." });
+
+    return res.status(500).json({
+      error: error.message ||
+        "Gagal menghapus akun. Periksa relasi data pengguna di database."
+    });
   }
 });
 
@@ -878,21 +983,21 @@ const connectLimiter = rateLimit({
 // =====================================
 // AMBIL JOB - WAJIB TERHUBUNG
 // =====================================
-// Endpoint ini menggunakan service role, tetapi hanya setelah memverifikasi
-// token pengguna, socket Baileys yang benar-benar open, dan status sesi DB.
+
 app.post("/applications", requireUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const campaignId = String(req.body?.campaignId || "").trim();
 
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) {
-      return res.status(400).json({ error: "ID campaign tidak valid." });
+      return res.status(400).json({
+        error: "ID campaign tidak valid."
+      });
     }
 
-    // Pemeriksaan wajib dilakukan di server, bukan hanya mengandalkan tombol UI.
-    // Socket harus milik sesi user yang sedang login dan Baileys harus sudah open.
     const socket = sockets.get(userId);
     const state = liveState.get(userId);
+
     if (!socket || !socket.user || state?.status !== "connected") {
       return res.status(403).json({
         error: "WhatsApp belum benar-benar terhubung. Tautkan WhatsApp terlebih dahulu sebelum mengambil pekerjaan."
@@ -904,7 +1009,9 @@ app.post("/applications", requireUser, async (req, res) => {
       .select("status")
       .eq("user_id", userId)
       .maybeSingle();
+
     if (sessionError) throw sessionError;
+
     if (session?.status !== "connected") {
       return res.status(403).json({
         error: "Status WhatsApp belum terverifikasi. Buka menu WhatsApp dan hubungkan kembali."
@@ -916,9 +1023,13 @@ app.post("/applications", requireUser, async (req, res) => {
       .select("id,status")
       .eq("id", campaignId)
       .maybeSingle();
+
     if (campaignError) throw campaignError;
+
     if (!campaign || campaign.status !== "active") {
-      return res.status(404).json({ error: "Campaign tidak tersedia atau belum aktif." });
+      return res.status(404).json({
+        error: "Campaign tidak tersedia atau belum aktif."
+      });
     }
 
     const { data: existing, error: existingError } = await req.admin
@@ -927,11 +1038,16 @@ app.post("/applications", requireUser, async (req, res) => {
       .eq("campaign_id", campaignId)
       .eq("worker_id", userId)
       .maybeSingle();
+
     if (existingError) throw existingError;
+
     if (existing) {
       if (existing.status === "rejected") {
-        return res.status(403).json({ error: "Pengambilan job ini pernah ditolak dan perlu bantuan admin." });
+        return res.status(403).json({
+          error: "Pengambilan job ini pernah ditolak dan perlu bantuan admin."
+        });
       }
+
       if (existing.status === "pending") {
         const { data: activated, error: activateError } = await req.admin
           .from("applications")
@@ -940,156 +1056,470 @@ app.post("/applications", requireUser, async (req, res) => {
           .eq("worker_id", userId)
           .select("id,status,created_at")
           .single();
+
         if (activateError) throw activateError;
-        return res.json({ success: true, application: activated, message: "Job langsung aktif tanpa menunggu persetujuan admin." });
+
+        return res.json({
+          success: true,
+          application: activated,
+          message: "Job langsung aktif tanpa menunggu persetujuan admin."
+        });
       }
-      return res.json({ success: true, application: existing, message: "Job ini sudah ada di daftar pekerjaan kamu." });
+
+      return res.json({
+        success: true,
+        application: existing,
+        message: "Job ini sudah ada di daftar pekerjaan kamu."
+      });
     }
 
     const { data: application, error: insertError } = await req.admin
       .from("applications")
-      .insert({ campaign_id: campaignId, worker_id: userId, status: "approved" })
+      .insert({
+        campaign_id: campaignId,
+        worker_id: userId,
+        status: "approved"
+      })
       .select("id,status,created_at")
       .single();
+
     if (insertError) {
       if (insertError.code === "23505") {
-        return res.status(409).json({ error: "Kamu sudah mengambil job ini." });
+        return res.status(409).json({
+          error: "Kamu sudah mengambil job ini."
+        });
       }
+
       throw insertError;
     }
 
-    console.log("Job berhasil diambil setelah verifikasi WhatsApp:", userId, campaignId);
-    return res.status(201).json({ success: true, application });
+    console.log(
+      "Job berhasil diambil setelah verifikasi WhatsApp:",
+      userId,
+      campaignId
+    );
+
+    return res.status(201).json({
+      success: true,
+      application
+    });
   } catch (error) {
     console.error("Ambil job:", error);
-    return res.status(500).json({ error: error.message || "Gagal mengambil pekerjaan." });
+
+    return res.status(500).json({
+      error: error.message || "Gagal mengambil pekerjaan."
+    });
   }
 });
 
 // =====================================
 // CAMPAIGN DELIVERY VIA BAILEYS
 // =====================================
+
 const CAMPAIGN_SEND_BATCH_LIMIT = 10;
 const CAMPAIGN_SEND_DELAY_MS = 30000;
+
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runCampaignDelivery(userId, applicationId, admin) {
   let attemptedThisRun = 0;
+
   try {
     const socket = sockets.get(userId);
-    if (!socket?.user || liveState.get(userId)?.status !== "connected") throw new Error("WhatsApp pekerja tidak lagi terhubung.");
-    while (attemptedThisRun < CAMPAIGN_SEND_BATCH_LIMIT && !campaignDeliveryStop.has(userId)) {
-      const { data: claimed, error: claimError } = await admin.rpc("claim_campaign_delivery", {
-        p_application_id: applicationId, p_worker_id: userId
-      });
+
+    if (!socket?.user || liveState.get(userId)?.status !== "connected") {
+      throw new Error("WhatsApp pekerja tidak lagi terhubung.");
+    }
+
+    while (
+      attemptedThisRun < CAMPAIGN_SEND_BATCH_LIMIT &&
+      !campaignDeliveryStop.has(userId)
+    ) {
+      const { data: claimed, error: claimError } = await admin.rpc(
+        "claim_campaign_delivery",
+        {
+          p_application_id: applicationId,
+          p_worker_id: userId
+        }
+      );
+
       if (claimError) throw claimError;
+
       const job = Array.isArray(claimed) ? claimed[0] : claimed;
+
       if (!job) break;
+
       attemptedThisRun++;
+
       try {
-        if (!job.phone_number || !/^62[0-9]{8,13}$/.test(job.phone_number)) throw new Error("Nomor penerima tidak valid.");
-        const result = await socket.sendMessage(`${job.phone_number}@s.whatsapp.net`, { text: String(job.message_template).slice(0, 4000) });
+        if (!job.phone_number || !/^62[0-9]{8,13}$/.test(job.phone_number)) {
+          throw new Error("Nomor penerima tidak valid.");
+        }
+
+        const result = await socket.sendMessage(
+          `${job.phone_number}@s.whatsapp.net`,
+          {
+            text: String(job.message_template).slice(0, 4000)
+          }
+        );
+
         const messageId = result?.key?.id;
-        if (!messageId) throw new Error("WhatsApp tidak mengembalikan ID pesan.");
+
+        if (!messageId) {
+          throw new Error("WhatsApp tidak mengembalikan ID pesan.");
+        }
+
         const now = new Date().toISOString();
-        const { error: queueError } = await admin.from("campaign_delivery_queue")
-          .update({ status: "sent", message_id: messageId, sent_at: now, updated_at: now })
-          .eq("id", job.queue_id).eq("worker_id", userId);
+
+        const { error: queueError } = await admin
+          .from("campaign_delivery_queue")
+          .update({
+            status: "sent",
+            message_id: messageId,
+            sent_at: now,
+            updated_at: now
+          })
+          .eq("id", job.queue_id)
+          .eq("worker_id", userId);
+
         if (queueError) throw queueError;
+
         if (pendingDeliveryAcks.has(messageId)) {
           pendingDeliveryAcks.delete(messageId);
+
           const deliveredAt = new Date().toISOString();
-          const { error: earlyAckError } = await admin.from("campaign_delivery_queue")
-            .update({ status: "delivered", delivered_at: deliveredAt, updated_at: deliveredAt })
-            .eq("id", job.queue_id).eq("worker_id", userId);
-          if (earlyAckError) console.error("Simpan receipt awal:", earlyAckError.message);
+
+          const { error: earlyAckError } = await admin
+            .from("campaign_delivery_queue")
+            .update({
+              status: "delivered",
+              delivered_at: deliveredAt,
+              updated_at: deliveredAt
+            })
+            .eq("id", job.queue_id)
+            .eq("worker_id", userId);
+
+          if (earlyAckError) {
+            console.error(
+              "Simpan receipt awal:",
+              earlyAckError.message
+            );
+          }
         }
-        const { error: recipientError } = await admin.from("campaign_recipients")
-          .update({ status: "sent", updated_at: now }).eq("id", job.recipient_id);
-        if (recipientError) console.error("Pembaruan status penerima:", recipientError.message);
-        console.log("Campaign message accepted by WhatsApp:", job.queue_id, messageId);
+
+        // PERBAIKAN:
+        // campaign_recipients tidak memiliki kolom updated_at.
+        const { error: recipientError } = await admin
+          .from("campaign_recipients")
+          .update({
+            status: "sent"
+          })
+          .eq("id", job.recipient_id);
+
+        if (recipientError) {
+          console.error(
+            "Pembaruan status penerima:",
+            recipientError.message
+          );
+        }
+
+        console.log(
+          "Campaign message accepted by WhatsApp:",
+          job.queue_id,
+          messageId
+        );
+
       } catch (sendError) {
         const now = new Date().toISOString();
-        await admin.from("campaign_delivery_queue").update({ status: "failed", error_message: String(sendError.message || "Gagal mengirim").slice(0, 500), updated_at: now }).eq("id", job.queue_id);
-        await admin.from("campaign_recipients").update({ status: "failed", updated_at: now }).eq("id", job.recipient_id);
-        console.error("Campaign send failed:", sendError.message);
+
+        await admin
+          .from("campaign_delivery_queue")
+          .update({
+            status: "failed",
+            error_message: String(
+              sendError.message || "Gagal mengirim"
+            ).slice(0, 500),
+            updated_at: now
+          })
+          .eq("id", job.queue_id);
+
+        // PERBAIKAN:
+        // Jangan kirim updated_at ke campaign_recipients.
+        const { error: recipientError } = await admin
+          .from("campaign_recipients")
+          .update({
+            status: "failed"
+          })
+          .eq("id", job.recipient_id);
+
+        if (recipientError) {
+          console.error(
+            "Pembaruan status penerima gagal:",
+            recipientError.message
+          );
+        }
+
+        console.error(
+          "Campaign send failed:",
+          sendError.message
+        );
       }
-      if (attemptedThisRun < CAMPAIGN_SEND_BATCH_LIMIT && !campaignDeliveryStop.has(userId)) {
+
+      if (
+        attemptedThisRun < CAMPAIGN_SEND_BATCH_LIMIT &&
+        !campaignDeliveryStop.has(userId)
+      ) {
         await wait(CAMPAIGN_SEND_DELAY_MS);
-        if (sockets.get(userId) !== socket || liveState.get(userId)?.status !== "connected") throw new Error("Koneksi WhatsApp terputus saat pengiriman berlangsung.");
+
+        if (
+          sockets.get(userId) !== socket ||
+          liveState.get(userId)?.status !== "connected"
+        ) {
+          throw new Error(
+            "Koneksi WhatsApp terputus saat pengiriman berlangsung."
+          );
+        }
       }
     }
-  } catch (error) { console.error("Campaign delivery run:", error.message); }
-  finally { campaignDeliveryRuns.delete(userId); campaignDeliveryStop.delete(userId); }
+  } catch (error) {
+    console.error("Campaign delivery run:", error.message);
+  } finally {
+    campaignDeliveryRuns.delete(userId);
+    campaignDeliveryStop.delete(userId);
+  }
 }
 
 app.post("/campaign-delivery/start", requireUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const applicationId = String(req.body?.applicationId || "");
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId)) return res.status(400).json({ error: "ID pekerjaan tidak valid." });
-    if (campaignDeliveryRuns.has(userId)) return res.status(409).json({ error: "Pengiriman campaign kamu sedang berjalan." });
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId)) {
+      return res.status(400).json({
+        error: "ID pekerjaan tidak valid."
+      });
+    }
+
+    if (campaignDeliveryRuns.has(userId)) {
+      return res.status(409).json({
+        error: "Pengiriman campaign kamu sedang berjalan."
+      });
+    }
+
     const socket = sockets.get(userId);
-    if (!socket?.user || liveState.get(userId)?.status !== "connected") return res.status(403).json({ error: "Tautkan WhatsApp kamu terlebih dahulu." });
-    const { data: application, error } = await req.admin.from("applications")
+
+    if (!socket?.user || liveState.get(userId)?.status !== "connected") {
+      return res.status(403).json({
+        error: "Tautkan WhatsApp kamu terlebih dahulu."
+      });
+    }
+
+    const { data: application, error } = await req.admin
+      .from("applications")
       .select("id,status,campaign_id,campaigns(status,message_template)")
-      .eq("id", applicationId).eq("worker_id", userId).maybeSingle();
+      .eq("id", applicationId)
+      .eq("worker_id", userId)
+      .maybeSingle();
+
     if (error) throw error;
-    if (!application || application.status === "rejected" || application.campaigns?.status !== "active") return res.status(403).json({ error: "Job tidak tersedia atau campaign tidak aktif." });
-    if (!String(application.campaigns?.message_template || "").trim()) return res.status(400).json({ error: "Pemasang iklan belum mengisi template pesan." });
-    const task = runCampaignDelivery(userId, applicationId, req.admin);
-    campaignDeliveryRuns.set(userId, { applicationId, startedAt: new Date().toISOString(), task });
-    return res.status(202).json({ success: true, message: "Pengiriman langsung dimulai. Sistem membagi penerima secara otomatis; batas aman 10 pesan per sesi dengan jeda 30 detik." });
-  } catch (error) { console.error("Mulai campaign delivery:", error); return res.status(500).json({ error: error.message || "Gagal memulai antrean." }); }
+
+    if (
+      !application ||
+      application.status === "rejected" ||
+      application.campaigns?.status !== "active"
+    ) {
+      return res.status(403).json({
+        error: "Job tidak tersedia atau campaign tidak aktif."
+      });
+    }
+
+    if (!String(application.campaigns?.message_template || "").trim()) {
+      return res.status(400).json({
+        error: "Pemasang iklan belum mengisi template pesan."
+      });
+    }
+
+    const task = runCampaignDelivery(
+      userId,
+      applicationId,
+      req.admin
+    );
+
+    campaignDeliveryRuns.set(userId, {
+      applicationId,
+      startedAt: new Date().toISOString(),
+      task
+    });
+
+    return res.status(202).json({
+      success: true,
+      message: "Pengiriman langsung dimulai. Sistem membagi penerima secara otomatis; batas aman 10 pesan per sesi dengan jeda 30 detik."
+    });
+
+  } catch (error) {
+    console.error("Mulai campaign delivery:", error);
+
+    return res.status(500).json({
+      error: error.message || "Gagal memulai antrean."
+    });
+  }
 });
 
 app.post("/campaign-delivery/stop", requireUser, async (req, res) => {
-  if (!campaignDeliveryRuns.has(req.user.id)) return res.json({ success: true, running: false });
+  if (!campaignDeliveryRuns.has(req.user.id)) {
+    return res.json({
+      success: true,
+      running: false
+    });
+  }
+
   campaignDeliveryStop.add(req.user.id);
-  return res.json({ success: true, stopping: true });
+
+  return res.json({
+    success: true,
+    stopping: true
+  });
 });
 
 app.get("/campaign-delivery/status", requireUser, async (req, res) => {
   try {
     const applicationId = String(req.query.applicationId || "");
-    const { data: application, error: appError } = await req.admin.from("applications").select("id")
-      .eq("id", applicationId).eq("worker_id", req.user.id).maybeSingle();
+
+    const { data: application, error: appError } = await req.admin
+      .from("applications")
+      .select("id")
+      .eq("id", applicationId)
+      .eq("worker_id", req.user.id)
+      .maybeSingle();
+
     if (appError) throw appError;
-    if (!application) return res.status(404).json({ error: "Job tidak ditemukan." });
-    const { data, error } = await req.admin.from("campaign_delivery_queue").select("status")
-      .eq("application_id", applicationId).eq("worker_id", req.user.id);
+
+    if (!application) {
+      return res.status(404).json({
+        error: "Job tidak ditemukan."
+      });
+    }
+
+    const { data, error } = await req.admin
+      .from("campaign_delivery_queue")
+      .select("status")
+      .eq("application_id", applicationId)
+      .eq("worker_id", req.user.id);
+
     if (error) throw error;
-    const counts = { sending: 0, sent: 0, delivered: 0, failed: 0 };
-    for (const row of data || []) if (counts[row.status] !== undefined) counts[row.status]++;
+
+    const counts = {
+      sending: 0,
+      sent: 0,
+      delivered: 0,
+      failed: 0
+    };
+
+    for (const row of data || []) {
+      if (counts[row.status] !== undefined) {
+        counts[row.status]++;
+      }
+    }
+
     const run = campaignDeliveryRuns.get(req.user.id);
-    return res.json({ success: true, running: Boolean(run && run.applicationId === applicationId), counts });
-  } catch (error) { return res.status(500).json({ error: error.message || "Gagal membaca status antrean." }); }
+
+    return res.json({
+      success: true,
+      running: Boolean(
+        run && run.applicationId === applicationId
+      ),
+      counts
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message || "Gagal membaca status antrean."
+    });
+  }
 });
 
 app.post("/campaign-delivery/submit-report", requireUser, async (req, res) => {
   try {
     const applicationId = String(req.body?.applicationId || "");
-    const { data: application, error: appError } = await req.admin.from("applications").select("id,status")
-      .eq("id", applicationId).eq("worker_id", req.user.id).maybeSingle();
+
+    const { data: application, error: appError } = await req.admin
+      .from("applications")
+      .select("id,status")
+      .eq("id", applicationId)
+      .eq("worker_id", req.user.id)
+      .maybeSingle();
+
     if (appError) throw appError;
-    if (!application || application.status === "rejected") return res.status(403).json({ error: "Job tidak tersedia untuk laporan." });
-    const { data: existingReports, error: existingError } = await req.admin.from("reports")
-      .select("id,status").eq("application_id", applicationId);
-    if (existingError) throw existingError;
-    if ((existingReports || []).some(row => row.status === "pending" || row.status === "approved")) {
-      return res.status(409).json({ error: "Laporan untuk job ini sudah dikirim atau sudah disetujui." });
+
+    if (!application || application.status === "rejected") {
+      return res.status(403).json({
+        error: "Job tidak tersedia untuk laporan."
+      });
     }
-    const { count, error: countError } = await req.admin.from("campaign_delivery_queue").select("id", { count: "exact", head: true })
-      .eq("application_id", applicationId).eq("worker_id", req.user.id).eq("status", "delivered");
+
+    const { data: existingReports, error: existingError } =
+      await req.admin
+        .from("reports")
+        .select("id,status")
+        .eq("application_id", applicationId);
+
+    if (existingError) throw existingError;
+
+    if (
+      (existingReports || []).some(
+        row => row.status === "pending" || row.status === "approved"
+      )
+    ) {
+      return res.status(409).json({
+        error: "Laporan untuk job ini sudah dikirim atau sudah disetujui."
+      });
+    }
+
+    const { count, error: countError } = await req.admin
+      .from("campaign_delivery_queue")
+      .select("id", {
+        count: "exact",
+        head: true
+      })
+      .eq("application_id", applicationId)
+      .eq("worker_id", req.user.id)
+      .eq("status", "delivered");
+
     if (countError) throw countError;
-    if (!count) return res.status(400).json({ error: "Belum ada pesan dengan tanda terima delivery. Laporan belum dapat dikirim." });
-    const { data: report, error } = await req.admin.from("reports").insert({
-      application_id: applicationId, worker_id: req.user.id, delivered_count: count,
-      evidence_url: null, notes: "Dihitung otomatis dari delivery receipt WhatsApp Baileys."
-    }).select("id,delivered_count,status").single();
+
+    if (!count) {
+      return res.status(400).json({
+        error: "Belum ada pesan dengan tanda terima delivery. Laporan belum dapat dikirim."
+      });
+    }
+
+    const { data: report, error } = await req.admin
+      .from("reports")
+      .insert({
+        application_id: applicationId,
+        worker_id: req.user.id,
+        delivered_count: count,
+        evidence_url: null,
+        notes: "Dihitung otomatis dari delivery receipt WhatsApp Baileys."
+      })
+      .select("id,delivered_count,status")
+      .single();
+
     if (error) throw error;
-    return res.status(201).json({ success: true, report });
-  } catch (error) { console.error("Submit verified campaign report:", error); return res.status(500).json({ error: error.message || "Gagal mengirim laporan terverifikasi." }); }
+
+    return res.status(201).json({
+      success: true,
+      report
+    });
+
+  } catch (error) {
+    console.error("Submit verified campaign report:", error);
+
+    return res.status(500).json({
+      error: error.message ||
+        "Gagal mengirim laporan terverifikasi."
+    });
+  }
 });
 
 // =====================================
@@ -1107,7 +1537,12 @@ app.post(
       manualDisconnect.delete(userId);
       clearReconnect(userId);
 
-      const sock = await startWhatsApp(userId, req.admin, "qr");
+      const sock = await startWhatsApp(
+        userId,
+        req.admin,
+        "qr"
+      );
+
       const state = liveState.get(userId);
 
       return res.json({
@@ -1115,11 +1550,13 @@ app.post(
         status: state?.status || "connecting",
         connected: Boolean(sock.user)
       });
+
     } catch (error) {
       console.error("Koneksi QR:", error);
 
       return res.status(500).json({
-        error: error.message || "Gagal memulai koneksi WhatsApp."
+        error: error.message ||
+          "Gagal memulai koneksi WhatsApp."
       });
     }
   }
@@ -1162,7 +1599,12 @@ app.post(
       clearReconnect(userId);
       pairingReady.delete(userId);
 
-      const sock = await startWhatsApp(userId, req.admin, "pairing");
+      const sock = await startWhatsApp(
+        userId,
+        req.admin,
+        "pairing"
+      );
+
       pairingSocket = sock;
 
       if (sockets.get(userId) !== sock) {
@@ -1189,16 +1631,18 @@ app.post(
         throw new Error(
           "Socket WhatsApp berubah. Silakan coba hubungkan ulang."
         );
-          }
+      }
 
-                        if (sock.user) {
+      if (sock.user) {
         throw new Error("WhatsApp sudah terhubung.");
       }
 
       const pairingCode = await sock.requestPairingCode(phoneNumber);
 
       if (!pairingCode || typeof pairingCode !== "string") {
-        throw new Error("WhatsApp tidak mengembalikan Pairing Code yang valid.");
+        throw new Error(
+          "WhatsApp tidak mengembalikan Pairing Code yang valid."
+        );
       }
 
       if (sockets.get(userId) !== sock) {
@@ -1234,7 +1678,8 @@ app.post(
         status: "waiting_pairing",
         phoneNumber,
         pairingCode: String(pairingCode),
-        pairingCreatedAt: liveState.get(userId)?.pairingCreatedAt || Date.now()
+        pairingCreatedAt:
+          liveState.get(userId)?.pairingCreatedAt || Date.now()
       };
     })();
 
@@ -1243,20 +1688,29 @@ app.post(
     try {
       const result = await task;
       return res.json(result);
+
     } catch (error) {
       console.error("Pairing Code gagal:", {
         userId,
         message: error?.message || String(error),
-        statusCode: error?.output?.statusCode || error?.statusCode || null
+        statusCode:
+          error?.output?.statusCode ||
+          error?.statusCode ||
+          null
       });
 
-      // Bersihkan socket pairing yang gagal agar permintaan berikutnya
-      // membuat koneksi baru dan tidak memakai state pairing yang kedaluwarsa.
-      if (pairingSocket && sockets.get(userId) === pairingSocket && !pairingSocket.user) {
+      if (
+        pairingSocket &&
+        sockets.get(userId) === pairingSocket &&
+        !pairingSocket.user
+      ) {
         sockets.delete(userId);
         socketModes.delete(userId);
         pairingReady.delete(userId);
-        try { pairingSocket.end(undefined); } catch {}
+
+        try {
+          pairingSocket.end(undefined);
+        } catch {}
 
         liveState.set(userId, {
           status: "disconnected",
@@ -1265,12 +1719,18 @@ app.post(
           phoneNumber: null
         });
 
-        await setStatus(req.admin, userId, "disconnected");
+        await setStatus(
+          req.admin,
+          userId,
+          "disconnected"
+        );
       }
 
       return res.status(500).json({
-        error: error.message || "Gagal membuat Pairing Code. Silakan minta kode baru."
+        error: error.message ||
+          "Gagal membuat Pairing Code. Silakan minta kode baru."
       });
+
     } finally {
       pairingLocks.delete(userId);
     }
@@ -1302,7 +1762,12 @@ app.get(
           const savedCreds = decryptJson(data.creds);
 
           if (savedCreds.registered) {
-            await startWhatsApp(userId, req.admin, "qr");
+            await startWhatsApp(
+              userId,
+              req.admin,
+              "qr"
+            );
+
             state = liveState.get(userId);
           }
         }
@@ -1317,18 +1782,20 @@ app.get(
 
       let qrImage = null;
 
-      // QR tetap ditampilkan selama belum connected.
       if (state.qr && state.status !== "connected") {
-        qrImage = await QRCode.toDataURL(String(state.qr), {
-          errorCorrectionLevel: "H",
-          type: "image/png",
-          margin: 4,
-          width: 400,
-          color: {
-            dark: "#000000",
-            light: "#FFFFFF"
+        qrImage = await QRCode.toDataURL(
+          String(state.qr),
+          {
+            errorCorrectionLevel: "H",
+            type: "image/png",
+            margin: 4,
+            width: 400,
+            color: {
+              dark: "#000000",
+              light: "#FFFFFF"
+            }
           }
-        });
+        );
       }
 
       return res.json({
@@ -1338,11 +1805,13 @@ app.get(
         pairingCreatedAt: state.pairingCreatedAt || null,
         qr: qrImage
       });
+
     } catch (error) {
       console.error("Status WhatsApp:", error);
 
       return res.status(500).json({
-        error: error.message || "Gagal membaca status WhatsApp."
+        error: error.message ||
+          "Gagal membaca status WhatsApp."
       });
     }
   }
@@ -1405,11 +1874,13 @@ app.post(
         success: true,
         status: "disconnected"
       });
+
     } catch (error) {
       console.error("Disconnect:", error);
 
       return res.status(500).json({
-        error: error.message || "Gagal memutus koneksi WhatsApp."
+        error: error.message ||
+          "Gagal memutus koneksi WhatsApp."
       });
     }
   }
@@ -1424,7 +1895,9 @@ app.listen(PORT, "0.0.0.0", () => {
 
   console.log(
     "Baileys:",
-    typeof makeWASocket === "function" ? "READY" : "ERROR"
+    typeof makeWASocket === "function"
+      ? "READY"
+      : "ERROR"
   );
 
   console.log(
