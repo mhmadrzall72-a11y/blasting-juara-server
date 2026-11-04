@@ -398,6 +398,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
  </section>
 
  <section id="referral" class="box tab hidden">
+  <button type="button" class="secondary spin-back-button" onclick="showTab('account')">← KEMBALI KE AKUN</button>
   <h2>🎁 Program Referral</h2>
   <p>Undang teman untuk bergabung bersama Blasting Juara. Dapatkan bonus referral setelah teman yang Anda undang memenuhi persyaratan program.</p>
   <div class="referral-summary-grid">
@@ -421,6 +422,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
  </section>
 
  <section id="support" class="box tab hidden">
+  <button type="button" class="secondary spin-back-button" onclick="showTab('account')">← KEMBALI KE AKUN</button>
   <h2>✦ Pusat Bantuan</h2>
   <p>Silakan sampaikan pertanyaan atau kendala Anda. Tim Blasting Juara akan membantu melalui percakapan ini.</p>
   <form id="supportTicketForm">
@@ -441,6 +443,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
  </section>
 
  <section id="notifications" class="box tab hidden">
+  <button type="button" class="secondary spin-back-button" onclick="showTab('account')">← KEMBALI KE AKUN</button>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
    <div><h2>🔔 Pusat Notifikasi</h2><p>Semua informasi terbaru tentang akun dan aktivitas kamu.</p></div>
    <button class="secondary" type="button" onclick="markAllNotificationsRead()">Tandai semua dibaca</button>
@@ -451,6 +454,12 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
  <section id="campaigns" class="box tab">
   <h2>Campaign Tersedia</h2>
   <div id="campaignList">Memuat...</div>
+ </section>
+
+ <section id="jobs" class="box tab hidden">
+  <h2>▤ Job Saya</h2>
+  <p>Daftar pekerjaan campaign yang sudah kamu ambil, status pengerjaan, dan hasil pengiriman WhatsApp.</p>
+  <div id="jobList">Memuat daftar pekerjaan...</div>
  </section>
 
  <section id="spin" class="box tab hidden spin-panel">
@@ -517,6 +526,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
  </section>
 
  <section id="create" class="box tab hidden">
+  <button type="button" class="secondary spin-back-button" onclick="showTab('account')">← KEMBALI KE AKUN</button>
   <h2>Pasang Campaign</h2>
   <form id="campaignForm">
    <label>Nama campaign</label>
@@ -552,6 +562,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
  </section>
 
  <section id="admin" class="box tab hidden">
+  <button type="button" class="secondary spin-back-button" onclick="showTab('account')">← KEMBALI KE AKUN</button>
   <h2 class="adminTitle">👑 PANEL ADMIN BLASTING JUARA</h2>
 
   <div class="grid">
