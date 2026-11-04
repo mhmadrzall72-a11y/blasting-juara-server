@@ -209,6 +209,9 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 @media(max-width:760px){body{padding-bottom:84px}header{min-height:62px;padding:10px 12px}.logo{font-size:13px}#userLabel{display:none}main{padding:12px 10px 24px}#dashboard{display:flex;flex-direction:column;gap:12px}#dashboard>.box:first-child{order:0}#dashboard>nav.main-bottom-nav{position:fixed!important;top:auto!important;bottom:0!important;left:0;right:0;width:100%;z-index:9999;margin:0!important;padding:7px max(5px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));border-radius:16px 16px 0 0;border-left:0;border-right:0;border-bottom:0;background:rgba(31,25,43,.97);box-shadow:0 -10px 30px rgba(0,0,0,.35);display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;backdrop-filter:blur(18px)}#dashboard>nav.main-bottom-nav button{padding:7px 1px;min-height:54px}#dashboard>nav.main-bottom-nav button span{font-size:18px}#dashboard>nav.main-bottom-nav button small{font-size:9px}#dashboard>.tab{width:100%}.header-actions button{font-size:11px;padding:8px 9px}.account-menu-grid{gap:8px}}
 @media(min-width:761px){#dashboard>nav.main-bottom-nav{grid-column:1/-1;grid-row:2;position:sticky;top:76px;display:flex;flex-direction:row;justify-content:space-around}#dashboard>.tab{grid-column:1/-1;grid-row:3}}
 
+
+.spin-back-button{display:inline-flex;align-items:center;gap:8px;width:auto;max-width:100%;margin:0 0 16px;padding:10px 16px;border:1px solid #8d75a8;border-radius:12px;background:#30243f;color:#eadcf8;font-weight:700}
+.spin-back-button:active{transform:scale(.98)}
 </style>
 </head>
 
@@ -436,6 +439,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
  </section>
 
  <section id="spin" class="box tab hidden spin-panel">
+  <button type="button" class="secondary spin-back-button" onclick="showTab('account')">← KEMBALI KE AKUN</button>
   <h2>🎡 Spin Wheel Saldo</h2>
   <p>Masukkan kode Spin dari admin untuk membuka kesempatan mendapatkan saldo Rupiah.</p>
   <div class="spin-code-row">
