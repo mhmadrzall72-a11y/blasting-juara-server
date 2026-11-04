@@ -216,6 +216,8 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 <style>
 .dashboard-home-panel .account-menu-grid { margin-top: 16px; }
 .dashboard-home-panel { min-height: 150px; }
+
+.guide-panel .guide-intro{color:#cfc3da;line-height:1.65}.guide-note{padding:14px 15px;margin:14px 0;border:1px solid rgba(194,161,232,.25);border-radius:13px;background:rgba(87,65,110,.18);line-height:1.6}.guide-note p{margin:7px 0 0;color:#d4c9dd;font-size:13px}.guide-note button{margin-top:12px}.guide-item{margin:10px 0;border:1px solid rgba(194,161,232,.2);border-radius:13px;background:#1c1728;overflow:hidden}.guide-item summary{padding:15px 16px;cursor:pointer;font-weight:750;color:#f1e8fa;line-height:1.45;list-style-position:inside}.guide-item[open] summary{border-bottom:1px solid rgba(194,161,232,.16);background:rgba(119,87,150,.14)}.guide-item ol{padding:4px 20px 12px 39px;margin:0;color:#d7cddd;font-size:13px;line-height:1.7}.guide-item li{padding:4px 0}.guide-item b{color:#f0e5fa}
 </style>
 </head>
 
@@ -332,9 +334,27 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <button class="secondary" onclick="showTab('create')">＋ Pasang Iklan</button>
    <button class="secondary" onclick="showTab('referral')">🎁 Referral</button>
    <button class="secondary" onclick="showTab('spin')">🎡 Spin Wheel</button>
+   <button class="secondary" onclick="showTab('guide')">📘 Panduan Pengguna</button>
    <button id="adminButton" class="secondary hidden" onclick="showTab('admin')">👑 Panel Admin</button>
    <button class="danger" onclick="logout()">Keluar dari Akun</button>
   </div>
+ </section>
+
+ <section id="guide" class="box tab hidden guide-panel">
+  <button type="button" class="secondary spin-back-button" onclick="showTab('account')">← KEMBALI KE AKUN</button>
+  <h2>📘 Panduan Pengguna Blasting Juara</h2>
+  <p class="guide-intro">Panduan ini membantu kamu memahami langkah penggunaan Blasting Juara dari awal sampai selesai. Pilih topik untuk membaca petunjuknya.</p>
+  <div class="guide-note"><strong>💡 Sebelum mulai</strong><p>Gunakan akun milik sendiri, tautkan WhatsApp pribadi yang kamu kelola, dan kirim pesan promosi hanya kepada penerima yang sudah memberikan persetujuan.</p></div>
+  <details class="guide-item" open><summary>1. 📝 Daftar dan masuk akun</summary><ol><li>Buka halaman Blasting Juara.</li><li>Pilih <b>DAFTAR</b> jika belum memiliki akun, lalu isi nama, email, dan kata sandi.</li><li>Kamu juga dapat menggunakan tombol <b>Lanjutkan dengan Google</b> jika tersedia.</li><li>Jika sudah memiliki akun, pilih <b>LOGIN</b> dan masukkan email serta kata sandi.</li><li>Setelah berhasil masuk, halaman Beranda akan tampil. Gunakan menu navigasi untuk membuka fitur.</li></ol></details>
+  <details class="guide-item"><summary>2. 📱 Menautkan WhatsApp</summary><ol><li>Buka menu <b>WhatsApp</b>.</li><li>Pilih metode <b>Scan QR</b> atau <b>Nomor HP</b> sesuai pilihan yang tersedia.</li><li>Untuk QR, buka WhatsApp di ponsel → Perangkat tertaut → Tautkan perangkat, lalu pindai QR yang tampil.</li><li>Untuk kode pasangan, masukkan nomor WhatsApp dengan kode negara sesuai petunjuk di layar, lalu masukkan kode yang diberikan WhatsApp.</li><li>Tunggu sampai status menunjukkan <b>Terhubung</b>. Jangan bagikan QR atau kode pasangan kepada orang lain.</li></ol></details>
+  <details class="guide-item"><summary>3. 📢 Melihat dan mengambil Campaign</summary><ol><li>Buka menu <b>Campaign</b>.</li><li>Baca judul, deskripsi, ketentuan, jumlah pekerjaan, dan informasi bayaran pada campaign.</li><li>Pastikan WhatsApp sudah terhubung sebelum mengambil pekerjaan.</li><li>Pilih campaign yang sesuai, lalu tekan tombol ambil pekerjaan jika tersedia.</li><li>Periksa menu <b>Job Saya</b> untuk melihat pekerjaan yang sudah diambil dan statusnya.</li></ol></details>
+  <details class="guide-item"><summary>4. 💬 Mengerjakan Job Saya</summary><ol><li>Buka menu <b>Job Saya</b> dan pilih pekerjaan yang ingin dikerjakan.</li><li>Baca instruksi serta template pesan dari campaign.</li><li>Periksa penerima dan pastikan mereka telah menyetujui untuk menerima pesan promosi.</li><li>Mulai proses hanya melalui tombol dan petunjuk yang tersedia di halaman pekerjaan.</li><li>Jangan mengirim spam, menghubungi penerima tanpa izin, atau mengubah isi pesan di luar ketentuan campaign.</li></ol></details>
+  <details class="guide-item"><summary>5. 📄 Mengirim laporan atau bukti pekerjaan</summary><ol><li>Jika campaign meminta laporan, buka pekerjaan terkait di menu <b>Job Saya</b>.</li><li>Isi jumlah hasil sesuai pekerjaan yang benar-benar selesai.</li><li>Masukkan tautan bukti atau catatan jika kolom tersebut diminta.</li><li>Periksa kembali data, lalu kirim laporan melalui tombol yang tersedia.</li><li>Pantau status laporan. Pembayaran mengikuti hasil verifikasi dan ketentuan campaign yang ditampilkan.</li></ol></details>
+  <details class="guide-item"><summary>6. 💰 Melihat saldo dan mengajukan penarikan</summary><ol><li>Buka menu <b>Saldo</b> untuk melihat saldo dan riwayat transaksi.</li><li>Pastikan saldo yang tersedia memenuhi ketentuan minimum penarikan yang ditampilkan.</li><li>Pilih metode penarikan yang tersedia, lalu isi data rekening atau dompet digital dengan benar.</li><li>Periksa kembali nama dan nomor tujuan sebelum mengirim permintaan.</li><li>Pantau status penarikan di halaman Saldo. Jangan mengirim data rahasia seperti PIN atau kata sandi.</li></ol></details>
+  <details class="guide-item"><summary>7. 🎁 Menggunakan Referral</summary><ol><li>Buka <b>Akun → Referral</b>.</li><li>Lihat kode atau tautan referral milik akunmu.</li><li>Bagikan kepada orang yang ingin bergabung.</li><li>Bonus, syarat, dan status referral mengikuti ketentuan yang ditampilkan pada halaman Referral.</li></ol></details>
+  <details class="guide-item"><summary>8. 🎡 Menggunakan Spin Wheel</summary><ol><li>Buka <b>Akun → Spin Wheel</b>.</li><li>Masukkan kode Spin yang diberikan admin jika diminta.</li><li>Tekan verifikasi kode dan ikuti instruksi pada layar.</li><li>Jika mendapatkan hadiah, lakukan klaim melalui tombol yang tersedia. Periksa riwayat Spin untuk melihat statusnya.</li></ol></details>
+  <details class="guide-item"><summary>9. 🔔 Notifikasi dan bantuan</summary><ol><li>Tekan ikon lonceng di bagian atas untuk membaca notifikasi akun.</li><li>Tekan tombol <b>Bantuan</b> di bagian atas jika membutuhkan bantuan.</li><li>Jelaskan kendala dengan rinci dan sertakan informasi yang diperlukan, tetapi jangan pernah mengirim kata sandi, PIN, atau kode verifikasi.</li></ol></details>
+  <div class="guide-note"><strong>Butuh bantuan lebih lanjut?</strong><p>Gunakan tombol <b>Bantuan</b> di bagian atas halaman untuk menghubungi pusat bantuan.</p><button type="button" class="secondary" onclick="showTab('support')">✦ Buka Pusat Bantuan</button></div>
  </section>
 
  <section id="whatsapp" class="box tab hidden wa-box">
