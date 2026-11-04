@@ -1913,7 +1913,7 @@ async function applyJob(id) {
   // Pembuatan aplikasi job diproses server. Server memeriksa socket WhatsApp
   // aktif dan status database, sehingga tidak bisa dilewati dari browser.
   await waRequest("/applications", "POST", { campaignId:id });
-  notify("Permintaan job berhasil. Tunggu persetujuan pemilik campaign.");
+  notify("Job berhasil diambil dan langsung aktif! Kamu bisa mulai bekerja.");
   await Promise.all([loadCampaigns(), loadJobs()]);
  } catch (error) {
   const message = error.message || "Gagal mengambil pekerjaan.";
@@ -1949,12 +1949,12 @@ async function loadJobs() {
   const card = document.createElement("div"); card.className = "card";
   const heading = document.createElement("h3"); heading.textContent = campaign.title || "Campaign";
   const description = document.createElement("p"); description.textContent = campaign.description || "";
-  const status = document.createElement("p"); status.textContent = "Status pekerjaan: " + application.status;
+  const status = document.createElement("p"); status.textContent = "Status pekerjaan: " + (application.status === "approved" ? "SIAP DIKERJAKAN" : application.status === "pending" ? "MENUNGGU AKTIVASI" : "DITOLAK");
   const pay = document.createElement("p"); pay.textContent = "Bayaran per hasil terverifikasi: " + rupiah(campaign.payout_per_delivery || 0);
   card.append(heading, description, status, pay);
-  if (application.status === "approved") {
+  if (application.status !== "rejected" && campaign.status === "active") {
    const info = document.createElement("p");
-   info.textContent = "Pengiriman menggunakan WhatsApp milik kamu. Hanya nomor yang menyetujui pesan promosi yang masuk antrean. Maksimal 10 pesan per sesi, dengan jeda 30 detik.";
+   info.textContent = "Job siap dikerjakan tanpa menunggu persetujuan admin. Pengiriman menggunakan WhatsApp milik kamu dan hanya ke penerima yang menyetujui pesan promosi. Sistem membagi penerima otomatis dengan batas aman pengiriman.";
    const controls = document.createElement("div"); controls.className = "card";
    const statusBox = document.createElement("p"); statusBox.id = "deliveryStatus-" + application.id; statusBox.textContent = "Status antrean belum dimuat.";
    const startBtn = document.createElement("button"); startBtn.type = "button"; startBtn.textContent = "MULAI KIRIM PESAN";
@@ -1979,7 +1979,7 @@ async function refreshCampaignDeliveryStatus(applicationId) {
  try {
   const result = await waRequest("/campaign-delivery/status?applicationId=" + encodeURIComponent(applicationId));
   const c = result.counts || {};
-  el.textContent = `Antrean: ${c.sending||0} diproses · ${c.sent||0} diterima server WhatsApp · ${c.delivered||0} terkirim ke perangkat penerima · ${c.failed||0} gagal. ` + (result.running ? "Pengiriman sedang berjalan." : "Pengiriman tidak sedang berjalan.");
+  el.textContent = `Progres: ${c.sending||0} diproses · ${c.sent||0} diterima server WhatsApp · ${c.delivered||0} delivered · ${c.failed||0} gagal. ` + (result.running ? "Pengiriman sedang berjalan." : "Pengiriman tidak sedang berjalan.");
  } catch (error) { el.textContent = "Status antrean: " + error.message; }
 }
 
