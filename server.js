@@ -737,7 +737,7 @@ app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
     const users = authUsers.map(account => {
       const profile = profileMap.get(account.id) || {};
       const bannedUntil = account.banned_until || null;
-      const disabled = Boolean(bannedUntil && new Date(bannedUntil).getTime() > now);
+      const disabled = profile.is_active === false || Boolean(bannedUntil && new Date(bannedUntil).getTime() > now);
       return {
         id: account.id,
         email: account.email || "",
@@ -767,16 +767,28 @@ app.post("/admin/users/:id/status", requireUser, requireAdmin, async (req, res) 
 
     const { data: targetProfile, error: targetError } = await req.admin
       .from("profiles")
-      .select("role")
+      .select("role,is_active")
       .eq("id", targetId)
       .maybeSingle();
     if (targetError) throw targetError;
     if (targetProfile?.role === "admin") return res.status(403).json({ error: "Akun admin dilindungi dan tidak dapat diubah dari menu ini." });
 
+    // Sinkronkan kolom profil dan status Supabase Auth agar daftar admin
+    // tetap konsisten dengan kebijakan akses aplikasi.
+    const { error: profileUpdateError } = await req.admin
+      .from("profiles")
+      .update({ is_active: !disabled })
+      .eq("id", targetId);
+    if (profileUpdateError) throw profileUpdateError;
+
     const { data, error } = await req.admin.auth.admin.updateUserById(targetId, {
       ban_duration: disabled ? "876000h" : "none"
     });
-    if (error) throw error;
+    if (error) {
+      // Kembalikan status profil jika perubahan Auth gagal.
+      await req.admin.from("profiles").update({ is_active: targetProfile?.is_active !== false }).eq("id", targetId);
+      throw error;
+    }
     return res.json({ success: true, disabled, userId: data?.user?.id || targetId });
   } catch (error) {
     console.error("Admin update user status:", error);
