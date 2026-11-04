@@ -49,6 +49,9 @@ const startLocks = new Map();
 const reconnectTimers = new Map();
 const pairingLocks = new Map();
 const manualDisconnect = new Set();
+const campaignDeliveryRuns = new Map();
+const campaignDeliveryStop = new Set();
+const pendingDeliveryAcks = new Set();
 
 // =====================================
 // SUPABASE
@@ -534,6 +537,28 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         });
     });
 
+    // Delivery receipt Baileys: ACK >= 3 menunjukkan perangkat penerima telah menerima pesan.
+    sock.ev.on("messages.update", async updates => {
+      try {
+        for (const item of updates || []) {
+          const messageId = item?.key?.id;
+          const ackStatus = Number(item?.update?.status || 0);
+          if (!messageId || ackStatus < 3) continue;
+          const { data, error } = await admin
+            .from("campaign_delivery_queue")
+            .update({ status: "delivered", delivered_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq("message_id", messageId)
+            .eq("worker_id", userId)
+            .in("status", ["sending", "sent", "delivered"])
+            .select("id");
+          if (error) console.error("Simpan delivery receipt:", error.message);
+          if (!error && !data?.length && campaignDeliveryRuns.has(userId)) pendingDeliveryAcks.add(messageId);
+        }
+      } catch (error) {
+        console.error("Proses delivery receipt:", error.message);
+      }
+    });
+
     sock.ev.on("connection.update", async update => {
       if (sockets.get(userId) !== sock) return;
 
@@ -925,6 +950,132 @@ app.post("/applications", requireUser, async (req, res) => {
     console.error("Ambil job:", error);
     return res.status(500).json({ error: error.message || "Gagal mengambil pekerjaan." });
   }
+});
+
+// =====================================
+// CAMPAIGN DELIVERY VIA BAILEYS
+// =====================================
+const CAMPAIGN_SEND_BATCH_LIMIT = 10;
+const CAMPAIGN_SEND_DELAY_MS = 30000;
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function runCampaignDelivery(userId, applicationId, admin) {
+  let attemptedThisRun = 0;
+  try {
+    const socket = sockets.get(userId);
+    if (!socket?.user || liveState.get(userId)?.status !== "connected") throw new Error("WhatsApp pekerja tidak lagi terhubung.");
+    while (attemptedThisRun < CAMPAIGN_SEND_BATCH_LIMIT && !campaignDeliveryStop.has(userId)) {
+      const { data: claimed, error: claimError } = await admin.rpc("claim_campaign_delivery", {
+        p_application_id: applicationId, p_worker_id: userId
+      });
+      if (claimError) throw claimError;
+      const job = Array.isArray(claimed) ? claimed[0] : claimed;
+      if (!job) break;
+      attemptedThisRun++;
+      try {
+        if (!job.phone_number || !/^62[0-9]{8,13}$/.test(job.phone_number)) throw new Error("Nomor penerima tidak valid.");
+        const result = await socket.sendMessage(`${job.phone_number}@s.whatsapp.net`, { text: String(job.message_template).slice(0, 4000) });
+        const messageId = result?.key?.id;
+        if (!messageId) throw new Error("WhatsApp tidak mengembalikan ID pesan.");
+        const now = new Date().toISOString();
+        const { error: queueError } = await admin.from("campaign_delivery_queue")
+          .update({ status: "sent", message_id: messageId, sent_at: now, updated_at: now })
+          .eq("id", job.queue_id).eq("worker_id", userId);
+        if (queueError) throw queueError;
+        if (pendingDeliveryAcks.has(messageId)) {
+          pendingDeliveryAcks.delete(messageId);
+          const deliveredAt = new Date().toISOString();
+          const { error: earlyAckError } = await admin.from("campaign_delivery_queue")
+            .update({ status: "delivered", delivered_at: deliveredAt, updated_at: deliveredAt })
+            .eq("id", job.queue_id).eq("worker_id", userId);
+          if (earlyAckError) console.error("Simpan receipt awal:", earlyAckError.message);
+        }
+        const { error: recipientError } = await admin.from("campaign_recipients")
+          .update({ status: "sent", updated_at: now }).eq("id", job.recipient_id);
+        if (recipientError) console.error("Pembaruan status penerima:", recipientError.message);
+        console.log("Campaign message accepted by WhatsApp:", job.queue_id, messageId);
+      } catch (sendError) {
+        const now = new Date().toISOString();
+        await admin.from("campaign_delivery_queue").update({ status: "failed", error_message: String(sendError.message || "Gagal mengirim").slice(0, 500), updated_at: now }).eq("id", job.queue_id);
+        await admin.from("campaign_recipients").update({ status: "failed", updated_at: now }).eq("id", job.recipient_id);
+        console.error("Campaign send failed:", sendError.message);
+      }
+      if (attemptedThisRun < CAMPAIGN_SEND_BATCH_LIMIT && !campaignDeliveryStop.has(userId)) {
+        await wait(CAMPAIGN_SEND_DELAY_MS);
+        if (sockets.get(userId) !== socket || liveState.get(userId)?.status !== "connected") throw new Error("Koneksi WhatsApp terputus saat pengiriman berlangsung.");
+      }
+    }
+  } catch (error) { console.error("Campaign delivery run:", error.message); }
+  finally { campaignDeliveryRuns.delete(userId); campaignDeliveryStop.delete(userId); }
+}
+
+app.post("/campaign-delivery/start", requireUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const applicationId = String(req.body?.applicationId || "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(applicationId)) return res.status(400).json({ error: "ID pekerjaan tidak valid." });
+    if (campaignDeliveryRuns.has(userId)) return res.status(409).json({ error: "Pengiriman campaign kamu sedang berjalan." });
+    const socket = sockets.get(userId);
+    if (!socket?.user || liveState.get(userId)?.status !== "connected") return res.status(403).json({ error: "Tautkan WhatsApp kamu terlebih dahulu." });
+    const { data: application, error } = await req.admin.from("applications")
+      .select("id,status,campaign_id,campaigns(status,message_template)")
+      .eq("id", applicationId).eq("worker_id", userId).maybeSingle();
+    if (error) throw error;
+    if (!application || application.status !== "approved" || application.campaigns?.status !== "active") return res.status(403).json({ error: "Job belum disetujui atau campaign tidak aktif." });
+    if (!String(application.campaigns?.message_template || "").trim()) return res.status(400).json({ error: "Pemasang iklan belum mengisi template pesan." });
+    const task = runCampaignDelivery(userId, applicationId, req.admin);
+    campaignDeliveryRuns.set(userId, { applicationId, startedAt: new Date().toISOString(), task });
+    return res.status(202).json({ success: true, message: "Antrean dimulai. Maksimal 10 pesan per sesi dengan jeda 30 detik." });
+  } catch (error) { console.error("Mulai campaign delivery:", error); return res.status(500).json({ error: error.message || "Gagal memulai antrean." }); }
+});
+
+app.post("/campaign-delivery/stop", requireUser, async (req, res) => {
+  if (!campaignDeliveryRuns.has(req.user.id)) return res.json({ success: true, running: false });
+  campaignDeliveryStop.add(req.user.id);
+  return res.json({ success: true, stopping: true });
+});
+
+app.get("/campaign-delivery/status", requireUser, async (req, res) => {
+  try {
+    const applicationId = String(req.query.applicationId || "");
+    const { data: application, error: appError } = await req.admin.from("applications").select("id")
+      .eq("id", applicationId).eq("worker_id", req.user.id).maybeSingle();
+    if (appError) throw appError;
+    if (!application) return res.status(404).json({ error: "Job tidak ditemukan." });
+    const { data, error } = await req.admin.from("campaign_delivery_queue").select("status")
+      .eq("application_id", applicationId).eq("worker_id", req.user.id);
+    if (error) throw error;
+    const counts = { sending: 0, sent: 0, delivered: 0, failed: 0 };
+    for (const row of data || []) if (counts[row.status] !== undefined) counts[row.status]++;
+    const run = campaignDeliveryRuns.get(req.user.id);
+    return res.json({ success: true, running: Boolean(run && run.applicationId === applicationId), counts });
+  } catch (error) { return res.status(500).json({ error: error.message || "Gagal membaca status antrean." }); }
+});
+
+app.post("/campaign-delivery/submit-report", requireUser, async (req, res) => {
+  try {
+    const applicationId = String(req.body?.applicationId || "");
+    const { data: application, error: appError } = await req.admin.from("applications").select("id,status")
+      .eq("id", applicationId).eq("worker_id", req.user.id).maybeSingle();
+    if (appError) throw appError;
+    if (!application || application.status !== "approved") return res.status(403).json({ error: "Job belum disetujui." });
+    const { data: existingReports, error: existingError } = await req.admin.from("reports")
+      .select("id,status").eq("application_id", applicationId);
+    if (existingError) throw existingError;
+    if ((existingReports || []).some(row => row.status === "pending" || row.status === "approved")) {
+      return res.status(409).json({ error: "Laporan untuk job ini sudah dikirim atau sudah disetujui." });
+    }
+    const { count, error: countError } = await req.admin.from("campaign_delivery_queue").select("id", { count: "exact", head: true })
+      .eq("application_id", applicationId).eq("worker_id", req.user.id).eq("status", "delivered");
+    if (countError) throw countError;
+    if (!count) return res.status(400).json({ error: "Belum ada pesan dengan tanda terima delivery. Laporan belum dapat dikirim." });
+    const { data: report, error } = await req.admin.from("reports").insert({
+      application_id: applicationId, worker_id: req.user.id, delivered_count: count,
+      evidence_url: null, notes: "Dihitung otomatis dari delivery receipt WhatsApp Baileys."
+    }).select("id,delivered_count,status").single();
+    if (error) throw error;
+    return res.status(201).json({ success: true, report });
+  } catch (error) { console.error("Submit verified campaign report:", error); return res.status(500).json({ error: error.message || "Gagal mengirim laporan terverifikasi." }); }
 });
 
 // =====================================
