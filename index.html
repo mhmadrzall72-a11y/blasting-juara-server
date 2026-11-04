@@ -125,7 +125,12 @@ input,textarea,select{background:#091827;border:1px solid #304a67;border-radius:
 .wa-box #waDisconnectedArea{max-width:720px}.pairing-code{background:#081827;border-color:#d6a83f;color:#f5cf73}
 .spin-panel{text-align:left}.spin-panel>h2,.spin-panel>p{text-align:center}.spin-code-row{max-width:480px;text-align:left;background:#0b1a2b;border:1px solid #29435e;border-radius:15px;padding:18px}.spin-wheel-wrap{margin:26px auto}.spin-result{background:#0b1a2b}
 .transaction-item,.spin-result{border-radius:13px;background:#0b1a2b}
-#message{position:fixed;z-index:1000;top:auto;bottom:18px;left:50%;transform:translateX(-50%);width:min(calc(100% - 28px),520px);margin:0;background:#173b3b;border:1px solid #38d99b;color:#effff8;box-shadow:0 12px 35px rgba(0,0,0,.35)}
+#message{position:fixed!important;z-index:100000!important;top:calc(env(safe-area-inset-top, 0px) + 14px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%);width:min(calc(100% - 28px),520px);margin:0;background:#173b3b;border:1px solid #38d99b;color:#effff8;box-shadow:0 12px 35px rgba(0,0,0,.45);text-align:center;font-weight:700;border-radius:12px;pointer-events:none;animation:bjToastIn .18s ease-out}
+/* Toast khusus koneksi WhatsApp: muncul tepat di tengah layar/area QR lalu hilang otomatis. */
+#waSuccessToast{position:fixed;z-index:100001;left:50%;top:50%;transform:translate(-50%,-50%);width:min(calc(100% - 36px),360px);padding:17px 20px;border-radius:15px;background:rgba(22,65,58,.97);border:1px solid #55e2ad;color:#f2fff9;text-align:center;font-size:15px;font-weight:800;line-height:1.45;box-shadow:0 16px 48px rgba(0,0,0,.55);pointer-events:none;animation:bjQrToastIn .18s ease-out}
+#waSuccessToast.hidden{display:none!important}
+@keyframes bjQrToastIn{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes bjToastIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
 .confirm-box{background:#10243b;border-color:#355473}
 @media(max-width:760px){main{padding:12px 10px}#dashboard{display:flex;flex-direction:column;gap:12px}#dashboard>.box:first-child{width:100%;display:block;padding:18px}#dashboard>.box:first-child .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;margin-top:15px}#dashboard>.box:first-child .card{min-width:0}#dashboard>nav{position:sticky;top:67px;z-index:20;width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px;backdrop-filter:blur(14px)}#dashboard>nav button{font-size:12px;padding:10px 9px;text-align:center}#dashboard>.tab{width:100%}header{padding:12px}#waQrPanel{min-height:400px}#waPairPanel{min-height:410px}}
 @media(max-width:420px){#dashboard>nav{grid-template-columns:repeat(2,minmax(0,1fr))}#dashboard>.box:first-child .money{font-size:19px}.box,.card{padding:15px}.wa-methods{gap:7px}.wa-methods button{font-size:11px;padding:11px 7px}}
@@ -199,7 +204,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 .header-actions{gap:8px}.header-icon{position:relative;min-width:42px;padding:10px}.header-badge{position:absolute;right:-5px;top:-6px;background:#d7c1ed;color:#241b31;border-radius:20px;padding:2px 6px;font-size:10px;font-weight:800}
 .main-bottom-nav{display:flex;align-items:stretch;justify-content:space-around;gap:4px;padding:9px;margin:0 0 18px;position:sticky;top:78px;z-index:25;backdrop-filter:blur(16px)}
 .main-bottom-nav button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px;margin:0;background:transparent!important;border:1px solid transparent!important;box-shadow:none!important;color:#bdb4c9!important;transform:none!important}
-.main-bottom-nav button span{font-size:19px;line-height:1.1}.main-bottom-nav button small{font-size:10px;color:inherit;font-weight:700;white-space:nowrap}.main-bottom-nav button.active,.main-bottom-nav button:hover{background:rgba(194,161,232,.15)!important;border-color:rgba(194,161,232,.25)!important;color:#e5cff8!important}
+.main-bottom-nav button span{font-size:19px;line-height:1.1}.main-bottom-nav button small{font-size:10px;color:inherit;font-weight:700;white-space:nowrap}.main-bottom-nav button.active{background:rgba(194,161,232,.15)!important;border-color:rgba(194,161,232,.25)!important;color:#e5cff8!important}.main-bottom-nav button:hover:not(.active){background:transparent!important;border-color:transparent!important;color:#bdb4c9!important}
 .account-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}.account-menu-grid button{min-height:52px;margin:0}
 @media(max-width:760px){body{padding-bottom:84px}header{min-height:62px;padding:10px 12px}.logo{font-size:13px}#userLabel{display:none}main{padding:12px 10px 24px}#dashboard{display:flex;flex-direction:column;gap:12px}#dashboard>.box:first-child{order:0}#dashboard>nav.main-bottom-nav{position:fixed!important;top:auto!important;bottom:0!important;left:0;right:0;width:100%;z-index:9999;margin:0!important;padding:7px max(5px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));border-radius:16px 16px 0 0;border-left:0;border-right:0;border-bottom:0;background:rgba(31,25,43,.97);box-shadow:0 -10px 30px rgba(0,0,0,.35);display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;backdrop-filter:blur(18px)}#dashboard>nav.main-bottom-nav button{padding:7px 1px;min-height:54px}#dashboard>nav.main-bottom-nav button span{font-size:18px}#dashboard>nav.main-bottom-nav button small{font-size:9px}#dashboard>.tab{width:100%}.header-actions button{font-size:11px;padding:8px 9px}.account-menu-grid{gap:8px}}
 @media(min-width:761px){#dashboard>nav.main-bottom-nav{grid-column:1/-1;grid-row:2;position:sticky;top:76px;display:flex;flex-direction:row;justify-content:space-around}#dashboard>.tab{grid-column:1/-1;grid-row:3}}
@@ -244,6 +249,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
 
 <main>
 <div id="message" class="hidden"></div>
+<div id="waSuccessToast" class="hidden" role="status" aria-live="polite">✓ WhatsApp berhasil terhubung!</div>
 
 <section id="home" class="box">
  <h1>BLASTING JUARA</h1>
@@ -677,7 +683,18 @@ const $ = id => document.getElementById(id);
 // =========================
 
 let notifyTimeout = null;
-function notify(message) {
+let waSuccessToastTimeout = null;
+function showWaSuccessToast() {
+ const toast = $("waSuccessToast");
+ if (!toast) return;
+ if (waSuccessToastTimeout) clearTimeout(waSuccessToastTimeout);
+ toast.classList.remove("hidden");
+ waSuccessToastTimeout = setTimeout(() => {
+  toast.classList.add("hidden");
+  waSuccessToastTimeout = null;
+ }, 2000);
+}
+function notify(message, duration = 2500) {
  const box = $("message");
  if (!box) return;
  if (notifyTimeout) clearTimeout(notifyTimeout);
@@ -687,7 +704,7 @@ function notify(message) {
  notifyTimeout = setTimeout(() => {
   box.classList.add("hidden");
   notifyTimeout = null;
- }, 3500);
+ }, duration);
 }
 
 function escapeHTML(value) {
@@ -771,6 +788,12 @@ async function signInWithGoogle() {
 
 function goHome() {
  showTab("campaigns");
+ const nav = document.querySelector("#dashboard > nav.main-bottom-nav");
+ if (nav) {
+  nav.querySelectorAll("button").forEach(button => button.classList.remove("active"));
+  const homeButton = nav.querySelector('button[onclick="goHome()"]');
+  if (homeButton) homeButton.classList.add("active");
+ }
  window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -780,9 +803,21 @@ function showTab(id) {
  });
 
  $(id).classList.remove("hidden");
- document.querySelectorAll("#dashboard > nav button").forEach(button => button.classList.remove("active"));
- const activeButton = document.querySelector('#dashboard > nav button[onclick="showTab(\'' + id + '\')"]');
- if (activeButton) activeButton.classList.add("active");
+ const mainNav = document.querySelector("#dashboard > nav.main-bottom-nav");
+ if (mainNav) {
+  mainNav.querySelectorAll("button").forEach(button => button.classList.remove("active"));
+  const navTarget = ({campaigns:"campaigns",jobs:"jobs",whatsapp:"whatsapp",wallet:"wallet",account:"account"})[id] || "account";
+  if (id === "campaigns") {
+   const campaignButton = mainNav.querySelector('button[onclick="showTab(\'campaigns\')"]');
+   if (campaignButton) campaignButton.classList.add("active");
+  } else if (id === "campaigns") {
+   const homeButton = mainNav.querySelector('button[onclick="goHome()"]');
+   if (homeButton) homeButton.classList.add("active");
+  } else {
+   const activeButton = mainNav.querySelector('button[onclick="showTab(\'' + navTarget + '\')"]');
+   if (activeButton) activeButton.classList.add("active");
+  }
+ }
 
  if (id === "campaigns") loadCampaigns();
  if (id === "jobs") loadJobs();
@@ -1070,7 +1105,11 @@ function showWaMethod(method) {
 }
 
 function setWaStatus(status, phone) {
+ const wasConnected = whatsappConnected;
  whatsappConnected = status === "connected";
+ if (!wasConnected && whatsappConnected) {
+  showWaSuccessToast();
+ }
 
  if (phone) {
   $("waPhone").textContent = "Nomor WhatsApp: " + phone;
@@ -1212,7 +1251,9 @@ async function connectWhatsApp() {
    setWaStatus(result.status, result.phoneNumber || null);
   }
 
-  notify("Permintaan koneksi berhasil. Menunggu QR Code muncul.");
+  if (result.status !== "connected") {
+   notify("Permintaan koneksi berhasil. Menunggu QR Code muncul.");
+  }
 
   // Mulai polling status; endpoint status mengirim QR sebagai data URL.
   startWaPolling();
@@ -1321,7 +1362,9 @@ $("waPairForm").onsubmit = async function(event) {
    phoneNumber
   );
 
-  notify("Pairing Code berhasil dibuat. Masukkan kode tersebut di WhatsApp kamu.");
+  if (result.status !== "connected") {
+   notify("Pairing Code berhasil dibuat. Masukkan kode tersebut di WhatsApp kamu.");
+  }
 
   startWaPolling();
 
