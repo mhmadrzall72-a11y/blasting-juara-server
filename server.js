@@ -839,6 +839,83 @@ const connectLimiter = rateLimit({
 });
 
 // =====================================
+// AMBIL JOB - WAJIB TERHUBUNG
+// =====================================
+// Endpoint ini menggunakan service role, tetapi hanya setelah memverifikasi
+// token pengguna, socket Baileys yang benar-benar open, dan status sesi DB.
+app.post("/applications", requireUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const campaignId = String(req.body?.campaignId || "").trim();
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) {
+      return res.status(400).json({ error: "ID campaign tidak valid." });
+    }
+
+    // Pemeriksaan wajib dilakukan di server, bukan hanya mengandalkan tombol UI.
+    // Socket harus milik sesi user yang sedang login dan Baileys harus sudah open.
+    const socket = sockets.get(userId);
+    const state = liveState.get(userId);
+    if (!socket || !socket.user || state?.status !== "connected") {
+      return res.status(403).json({
+        error: "WhatsApp belum benar-benar terhubung. Tautkan WhatsApp terlebih dahulu sebelum mengambil pekerjaan."
+      });
+    }
+
+    const { data: session, error: sessionError } = await req.admin
+      .from("whatsapp_sessions")
+      .select("status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (sessionError) throw sessionError;
+    if (session?.status !== "connected") {
+      return res.status(403).json({
+        error: "Status WhatsApp belum terverifikasi. Buka menu WhatsApp dan hubungkan kembali."
+      });
+    }
+
+    const { data: campaign, error: campaignError } = await req.admin
+      .from("campaigns")
+      .select("id,status")
+      .eq("id", campaignId)
+      .maybeSingle();
+    if (campaignError) throw campaignError;
+    if (!campaign || campaign.status !== "active") {
+      return res.status(404).json({ error: "Campaign tidak tersedia atau belum aktif." });
+    }
+
+    const { data: existing, error: existingError } = await req.admin
+      .from("applications")
+      .select("id")
+      .eq("campaign_id", campaignId)
+      .eq("worker_id", userId)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (existing) {
+      return res.status(409).json({ error: "Kamu sudah mengambil job ini." });
+    }
+
+    const { data: application, error: insertError } = await req.admin
+      .from("applications")
+      .insert({ campaign_id: campaignId, worker_id: userId })
+      .select("id,status,created_at")
+      .single();
+    if (insertError) {
+      if (insertError.code === "23505") {
+        return res.status(409).json({ error: "Kamu sudah mengambil job ini." });
+      }
+      throw insertError;
+    }
+
+    console.log("Job berhasil diambil setelah verifikasi WhatsApp:", userId, campaignId);
+    return res.status(201).json({ success: true, application });
+  } catch (error) {
+    console.error("Ambil job:", error);
+    return res.status(500).json({ error: error.message || "Gagal mengambil pekerjaan." });
+  }
+});
+
+// =====================================
 // KONEKSI QR
 // =====================================
 
