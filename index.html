@@ -600,6 +600,9 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
     <input id="newSpinCode" maxlength="80" placeholder="Contoh: JUARA2026">
     <label>Batas penggunaan total</label>
     <input id="spinUseLimit" type="number" min="1" value="10" required>
+    <label>Masa berlaku sampai (WIB)</label>
+    <input id="spinExpiresAt" type="datetime-local">
+    <small>Kosongkan jika kode tidak memiliki tanggal kedaluwarsa. Contoh: atur 05/11/2026 pukul 00.00 agar kode tidak bisa digunakan mulai tengah malam WIB.</small>
     <p>Hadiah ditentukan otomatis oleh database. Persentase peluang tidak ditampilkan di halaman Spin.</p>
     <button type="submit">BUAT KODE SPIN</button>
    </form>
@@ -2246,11 +2249,13 @@ async function loadAdminSpinCodes() {
  data.forEach(item => {
   const card = document.createElement("div"); card.className = "card";
   const title = document.createElement("h3"); title.textContent = item.code;
-  const detail = document.createElement("p"); detail.textContent = "Penggunaan: " + item.used_count + "/" + item.uses_limit + " • Status: " + (item.is_active ? "Aktif" : "Nonaktif");
+  const expired = !!item.expires_at && new Date(item.expires_at).getTime() <= Date.now();
+  const detail = document.createElement("p"); detail.textContent = "Penggunaan: " + item.used_count + "/" + item.uses_limit + " • Status: " + (expired ? "Kedaluwarsa" : (item.is_active ? "Aktif" : "Nonaktif"));
+  const expiry = document.createElement("p"); expiry.textContent = item.expires_at ? ("Berlaku sampai: " + new Date(item.expires_at).toLocaleString("id-ID", {timeZone:"Asia/Jakarta", dateStyle:"medium", timeStyle:"short"}) + " WIB") : "Masa berlaku: Tidak dibatasi";
   const prize = document.createElement("p"); prize.textContent = "Nominal hadiah: " + (item.prizes || []).map(x => rupiah(x.amount)).join(", ");
   const toggle = document.createElement("button"); toggle.className = item.is_active ? "danger" : "success"; toggle.textContent = item.is_active ? "NONAKTIFKAN" : "AKTIFKAN";
   toggle.onclick = async () => { const {error} = await db.rpc("admin_set_spin_code_active",{p_code_id:item.id,p_is_active:!item.is_active}); if(error) notify(error.message); else loadAdminSpinCodes(); };
-  card.append(title,detail,prize,toggle); box.append(card);
+  card.append(title,detail,expiry,prize,toggle); box.append(card);
  });
 }
 
@@ -2259,9 +2264,17 @@ $("spinCodeForm").onsubmit = async event => {
  const limit = Number($("spinUseLimit").value);
  if (!Number.isInteger(limit) || limit < 1) { notify("Batas penggunaan harus angka minimal 1."); return; }
  const code = $("newSpinCode").value.trim().toUpperCase();
- const {error} = await db.rpc("admin_create_spin_code",{p_code:code || null,p_uses_limit:limit});
+ const expiryInput = $("spinExpiresAt").value;
+ let expiresAt = null;
+ if (expiryInput) {
+  // datetime-local diperlakukan eksplisit sebagai WIB (UTC+7), bukan zona waktu server.
+  const expiryDate = new Date(expiryInput + ":00+07:00");
+  if (Number.isNaN(expiryDate.getTime()) || expiryDate.getTime() <= Date.now()) { notify("Tanggal kedaluwarsa harus berupa waktu WIB di masa depan."); return; }
+  expiresAt = expiryDate.toISOString();
+ }
+ const {error} = await db.rpc("admin_create_spin_code",{p_code:code || null,p_uses_limit:limit,p_prizes:null,p_expires_at:expiresAt});
  if (error) { notify("Gagal membuat kode: " + error.message); return; }
- notify("Kode Spin berhasil dibuat."); event.currentTarget.reset(); $("spinUseLimit").value="10"; await loadAdminSpinCodes();
+ notify("Kode Spin berhasil dibuat." + (expiresAt ? " Masa berlaku sampai " + new Date(expiresAt).toLocaleString("id-ID",{timeZone:"Asia/Jakarta"}) + " WIB." : " Kode tidak dibatasi masa berlaku.")); event.currentTarget.reset(); $("spinUseLimit").value="10"; await loadAdminSpinCodes();
 };
 
 // =========================
