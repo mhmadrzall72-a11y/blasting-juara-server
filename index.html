@@ -490,7 +490,16 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <label>Anggaran (Rp)</label>
    <input id="cBudget" type="number" min="1" required>
 
-   <p>Campaign wajib menggunakan penerima yang telah memberikan persetujuan menerima pesan promosi.</p>
+   <hr>
+   <h3>Daftar Nomor Penerima (TXT / CSV)</h3>
+   <p>Unggah file TXT atau CSV. Format nomor internasional, contoh 6281234567890. CSV dapat memakai kolom nomor_whatsapp.</p>
+   <label>Upload file TXT / CSV</label>
+   <input id="cRecipientFile" type="file" accept=".txt,.csv,text/plain,text/csv">
+   <label>Jika mengimpor file berikutnya</label>
+   <select id="cImportMode"><option value="replace">Ganti daftar</option><option value="append">Tambah ke daftar</option></select>
+   <div id="recipientPreview" class="card" aria-live="polite">Belum ada file dipilih.</div>
+   <label style="display:flex;gap:9px;align-items:flex-start"><input id="cOptIn" type="checkbox" required style="width:auto;margin:3px 0"> Saya memastikan semua penerima telah menyetujui pesan promosi.</label>
+   <p>Nomor duplikat akan dibuang dan format tidak valid akan dilaporkan. Nomor penerima tidak ditampilkan kepada pekerja.</p>
    <button type="submit">Buat Campaign</button>
   </form>
  </section>
@@ -1935,6 +1944,18 @@ async function loadJobs() {
   card.append(heading, description, status);
 
   if (application.status === "approved") {
+   const delayWrap = document.createElement("div");
+   delayWrap.className = "card";
+   const delayLabel = document.createElement("label");
+   delayLabel.textContent = "Pilihan jeda antar-pesan";
+   const delaySelect = document.createElement("select");
+   delaySelect.innerHTML = '<option value="1">1 detik</option><option value="5" selected>5 detik</option><option value="15">15 detik</option><option value="30">30 detik</option><option value="60">60 detik</option>';
+   delaySelect.setAttribute("aria-label", "Pilih jeda antar-pesan");
+   const delayNote = document.createElement("small");
+   delayNote.textContent = "Pilihan jeda disediakan di sini. Pengiriman otomatis belum diaktifkan sampai integrasi WhatsApp Business Platform resmi dikonfigurasi.";
+   delayWrap.append(delayLabel, delaySelect, delayNote);
+   card.append(delayWrap);
+
    const form = document.createElement("form");
 
    form.innerHTML = `
@@ -2415,10 +2436,70 @@ $("withdrawForm").onsubmit = async event => {
 // PASANG CAMPAIGN
 // =========================
 
+// =====================================
+// IMPORT NOMOR PENERIMA TXT / CSV
+// =====================================
+let campaignRecipientNumbers = [];
+function normalizeCampaignPhone(raw) {
+ let n = String(raw || "").trim().replace(/[\s().-]/g, "");
+ if (!n) return null;
+ if (n.startsWith("+")) n = n.slice(1);
+ if (n.startsWith("0")) n = "62" + n.slice(1);
+ else if (n.startsWith("8")) n = "62" + n;
+ return /^62[0-9]{8,13}$/.test(n) ? n : null;
+}
+function parseCampaignFile(content, filename) {
+ const lines = String(content || "").replace(/^\uFEFF/, "").split(/\r?\n/);
+ let col = 0;
+ if (/\.csv$/i.test(filename) && lines.length) {
+  const headers = lines[0].split(",").map(x => x.trim().replace(/^"|"$/g, "").toLowerCase());
+  const idx = headers.findIndex(x => ["nomor_whatsapp","whatsapp","nomor","phone","phone_number","no_hp"].includes(x));
+  if (idx >= 0) { col = idx; lines.shift(); }
+ }
+ return lines.filter(x => x.trim()).map(line => {
+  const cells = line.split(",");
+  return (cells[col] ?? line).trim().replace(/^"|"$/g, "");
+ }).filter(x => !/^(nomor_whatsapp|whatsapp|nomor|phone|phone_number|no_hp)$/i.test(x));
+}
+function renderCampaignRecipientPreview(invalid=0, duplicates=0) {
+ const el = $("recipientPreview");
+ if (!el) return;
+ el.innerHTML = "";
+ const summary = document.createElement("p");
+ summary.textContent = `Nomor valid: ${campaignRecipientNumbers.length} | Duplikat: ${duplicates} | Format tidak valid: ${invalid}`;
+ el.append(summary);
+ campaignRecipientNumbers.slice(0,10).forEach((n,i) => {
+  const row = document.createElement("div"); row.textContent = `${i+1}. ${n}`; el.append(row);
+ });
+ if (campaignRecipientNumbers.length > 10) { const more=document.createElement("small"); more.textContent=`Dan ${campaignRecipientNumbers.length-10} nomor lainnya.`; el.append(more); }
+}
+if ($("cRecipientFile")) {
+ $("cRecipientFile").addEventListener("change", async e => {
+  const file = e.target.files?.[0]; if (!file) return;
+  if (!/\.(txt|csv)$/i.test(file.name)) { notify("Gunakan file TXT atau CSV."); return; }
+  const importedRaw = parseCampaignFile(await file.text(), file.name);
+  const next = $("cImportMode").value === "append" ? [...campaignRecipientNumbers] : [];
+  const seen = new Set(next); let invalid=0, duplicates=0;
+  for (const raw of importedRaw) {
+   const normalized = normalizeCampaignPhone(raw);
+   if (!normalized) { invalid++; continue; }
+   if (seen.has(normalized)) { duplicates++; continue; }
+   seen.add(normalized); next.push(normalized);
+  }
+  campaignRecipientNumbers = next;
+  renderCampaignRecipientPreview(invalid, duplicates);
+  if (invalid) notify(`${invalid} baris dilewati karena format nomor tidak valid.`);
+ });
+}
+
 $("campaignForm").onsubmit = async event => {
  event.preventDefault();
 
- const {error} = await db.from("campaigns").insert({
+ if (!campaignRecipientNumbers.length) {
+  notify("Unggah daftar nomor TXT atau CSV terlebih dahulu.");
+  return;
+ }
+ const {data: createdCampaign, error} = await db.from("campaigns").insert({
   advertiser_id:user.id,
   title:$("cTitle").value.trim(),
   description:$("cDesc").value.trim(),
@@ -2428,16 +2509,22 @@ $("campaignForm").onsubmit = async event => {
   budget:Number($("cBudget").value),
   status:"draft",
   requires_opt_in:true
- });
+ }).select("id").single();
 
- if (error) {
-  notify(error.message);
+ if (error) { notify(error.message); return; }
+ const recipientRows = campaignRecipientNumbers.map(phone => ({
+  campaign_id:createdCampaign.id, advertiser_id:user.id,
+  phone_number:phone, consent_confirmed:true, status:"pending"
+ }));
+ const {error: recipientError} = await db.from("campaign_recipients").insert(recipientRows);
+ if (recipientError) {
+  notify("Campaign tersimpan, tetapi daftar nomor gagal disimpan: " + recipientError.message + ". Hubungi admin sebelum campaign disetujui.");
   return;
  }
-
- notify("Campaign tersimpan sebagai draft. Menunggu pemeriksaan admin.");
-
+ notify(`Campaign tersimpan sebagai draft dengan ${campaignRecipientNumbers.length} nomor penerima. Menunggu pemeriksaan admin.`);
+ campaignRecipientNumbers = [];
  event.target.reset();
+ renderCampaignRecipientPreview();
  showTab("campaigns");
 };
 
