@@ -167,7 +167,6 @@ async function requireUser(req, res, next) {
 // =====================================
 // ADMIN AUTHORIZATION
 // =====================================
-
 async function requireAdmin(req, res, next) {
   try {
     const { data, error } = await req.admin
@@ -177,20 +176,13 @@ async function requireAdmin(req, res, next) {
       .maybeSingle();
 
     if (error) throw error;
-
     if (data?.role !== "admin") {
-      return res.status(403).json({
-        error: "Akses khusus admin."
-      });
+      return res.status(403).json({ error: "Akses khusus admin." });
     }
-
     next();
   } catch (error) {
     console.error("Admin authorization:", error.message);
-
-    return res.status(500).json({
-      error: "Gagal memverifikasi hak akses admin."
-    });
+    return res.status(500).json({ error: "Gagal memverifikasi hak akses admin." });
   }
 }
 
@@ -266,8 +258,7 @@ async function createDatabaseAuthState(admin, userId) {
 
           if (error) throw error;
         }
-
-        if (upserts.length) {
+                      if (upserts.length) {
           const { error } = await admin
             .from("whatsapp_auth_keys")
             .upsert(upserts, {
@@ -444,11 +435,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     sockets.delete(userId);
     socketModes.delete(userId);
     pairingReady.delete(userId);
-
-    try {
-      existing.end(undefined);
-    } catch {}
-
+    try { existing.end(undefined); } catch {}
     existing = null;
   }
 
@@ -470,13 +457,9 @@ async function startWhatsApp(userId, admin, mode = "qr") {
     if (sockets.get(userId) === pendingSocket) {
       sockets.delete(userId);
     }
-
     socketModes.delete(userId);
     pairingReady.delete(userId);
-
-    try {
-      pendingSocket?.end(undefined);
-    } catch {}
+    try { pendingSocket?.end(undefined); } catch {}
   }
 
   const task = (async () => {
@@ -555,7 +538,8 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       if (sockets.get(userId) !== sock) return;
 
       if (update.qr) {
-        const previous = liveState.get(userId);
+
+                    const previous = liveState.get(userId);
 
         if (mode === "pairing") {
           // Event QR hanya dipakai sebagai tanda socket siap; QR tidak
@@ -673,12 +657,10 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           // Jangan hapus kredensial Supabase otomatis. Simpan untuk
           // pemeriksaan manual agar sesi QR yang lama tidak hilang.
           clearReconnect(userId);
-
           console.error(
             "WhatsApp menolak autentikasi. Kredensial tetap disimpan:",
             userId
           );
-
           return;
         }
 
@@ -692,7 +674,6 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           clearReconnect(userId);
 
           const reconnectDelay = shouldRestartPairing ? 1000 : 5000;
-
           const timer = setTimeout(async () => {
             reconnectTimers.delete(userId);
 
@@ -732,16 +713,10 @@ async function startWhatsApp(userId, admin, mode = "qr") {
 // =====================================
 // ADMIN: KELOLA AKUN PENGGUNA
 // =====================================
-
 app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
   try {
     const perPage = 1000;
-
-    const { data, error } = await req.admin.auth.admin.listUsers({
-      page: 1,
-      perPage
-    });
-
+    const { data, error } = await req.admin.auth.admin.listUsers({ page: 1, perPage });
     if (error) throw error;
 
     const authUsers = data?.users || [];
@@ -753,36 +728,20 @@ app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
         .from("profiles")
         .select("*")
         .in("id", ids);
-
       if (profileError) throw profileError;
-
       profileRows = profiles || [];
     }
 
-    const profileMap = new Map(
-      profileRows.map(row => [row.id, row])
-    );
-
+    const profileMap = new Map(profileRows.map(row => [row.id, row]));
     const now = Date.now();
-
     const users = authUsers.map(account => {
       const profile = profileMap.get(account.id) || {};
       const bannedUntil = account.banned_until || null;
-
-      const disabled = Boolean(
-        bannedUntil &&
-        new Date(bannedUntil).getTime() > now
-      );
-
+      const disabled = Boolean(bannedUntil && new Date(bannedUntil).getTime() > now);
       return {
         id: account.id,
         email: account.email || "",
-        full_name:
-          profile.full_name ||
-          profile.name ||
-          account.user_metadata?.full_name ||
-          account.user_metadata?.name ||
-          "",
+        full_name: profile.full_name || profile.name || account.user_metadata?.full_name || account.user_metadata?.name || "",
         role: profile.role || "user",
         created_at: account.created_at || null,
         last_sign_in_at: account.last_sign_in_at || null,
@@ -790,143 +749,63 @@ app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
       };
     });
 
-    users.sort(
-      (a, b) =>
-        new Date(b.created_at || 0) -
-        new Date(a.created_at || 0)
-    );
-
-    return res.json({
-      users,
-      count: users.length,
-      limit: perPage
-    });
+    users.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    return res.json({ users, count: users.length, limit: perPage });
   } catch (error) {
     console.error("Admin list users:", error);
-
-    return res.status(500).json({
-      error: error.message || "Gagal mengambil daftar akun."
-    });
+    return res.status(500).json({ error: error.message || "Gagal mengambil daftar akun." });
   }
 });
 
-app.post(
-  "/admin/users/:id/status",
-  requireUser,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const targetId = String(req.params.id || "");
-      const disabled = req.body?.disabled;
+app.post("/admin/users/:id/status", requireUser, requireAdmin, async (req, res) => {
+  try {
+    const targetId = String(req.params.id || "");
+    const disabled = req.body?.disabled;
+    if (!targetId) return res.status(400).json({ error: "ID akun tidak valid." });
+    if (typeof disabled !== "boolean") return res.status(400).json({ error: "Status akun tidak valid." });
+    if (targetId === req.user.id) return res.status(400).json({ error: "Admin tidak dapat menonaktifkan akunnya sendiri." });
 
-      if (!targetId) {
-        return res.status(400).json({
-          error: "ID akun tidak valid."
-        });
-      }
+    const { data: targetProfile, error: targetError } = await req.admin
+      .from("profiles")
+      .select("role")
+      .eq("id", targetId)
+      .maybeSingle();
+    if (targetError) throw targetError;
+    if (targetProfile?.role === "admin") return res.status(403).json({ error: "Akun admin dilindungi dan tidak dapat diubah dari menu ini." });
 
-      if (typeof disabled !== "boolean") {
-        return res.status(400).json({
-          error: "Status akun tidak valid."
-        });
-      }
-
-      if (targetId === req.user.id) {
-        return res.status(400).json({
-          error: "Admin tidak dapat menonaktifkan akunnya sendiri."
-        });
-      }
-
-      const { data: targetProfile, error: targetError } = await req.admin
-        .from("profiles")
-        .select("role")
-        .eq("id", targetId)
-        .maybeSingle();
-
-      if (targetError) throw targetError;
-
-      if (targetProfile?.role === "admin") {
-        return res.status(403).json({
-          error: "Akun admin dilindungi dan tidak dapat diubah dari menu ini."
-        });
-      }
-
-      const { data, error } = await req.admin.auth.admin.updateUserById(
-        targetId,
-        {
-          ban_duration: disabled ? "876000h" : "none"
-        }
-      );
-
-      if (error) throw error;
-
-      return res.json({
-        success: true,
-        disabled,
-        userId: data?.user?.id || targetId
-      });
-    } catch (error) {
-      console.error("Admin update user status:", error);
-
-      return res.status(500).json({
-        error: error.message || "Gagal mengubah status akun."
-      });
-    }
+    const { data, error } = await req.admin.auth.admin.updateUserById(targetId, {
+      ban_duration: disabled ? "876000h" : "none"
+    });
+    if (error) throw error;
+    return res.json({ success: true, disabled, userId: data?.user?.id || targetId });
+  } catch (error) {
+    console.error("Admin update user status:", error);
+    return res.status(500).json({ error: error.message || "Gagal mengubah status akun." });
   }
-);
+});
 
-app.delete(
-  "/admin/users/:id",
-  requireUser,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const targetId = String(req.params.id || "");
+app.delete("/admin/users/:id", requireUser, requireAdmin, async (req, res) => {
+  try {
+    const targetId = String(req.params.id || "");
+    if (!targetId) return res.status(400).json({ error: "ID akun tidak valid." });
+    if (targetId === req.user.id) return res.status(400).json({ error: "Admin tidak dapat menghapus akunnya sendiri." });
 
-      if (!targetId) {
-        return res.status(400).json({
-          error: "ID akun tidak valid."
-        });
-      }
+    const { data: targetProfile, error: targetError } = await req.admin
+      .from("profiles")
+      .select("role")
+      .eq("id", targetId)
+      .maybeSingle();
+    if (targetError) throw targetError;
+    if (targetProfile?.role === "admin") return res.status(403).json({ error: "Akun admin dilindungi dan tidak dapat dihapus dari menu ini." });
 
-      if (targetId === req.user.id) {
-        return res.status(400).json({
-          error: "Admin tidak dapat menghapus akunnya sendiri."
-        });
-      }
-
-      const { data: targetProfile, error: targetError } = await req.admin
-        .from("profiles")
-        .select("role")
-        .eq("id", targetId)
-        .maybeSingle();
-
-      if (targetError) throw targetError;
-
-      if (targetProfile?.role === "admin") {
-        return res.status(403).json({
-          error: "Akun admin dilindungi dan tidak dapat dihapus dari menu ini."
-        });
-      }
-
-      const { error } = await req.admin.auth.admin.deleteUser(targetId);
-
-      if (error) throw error;
-
-      return res.json({
-        success: true,
-        deletedUserId: targetId
-      });
-    } catch (error) {
-      console.error("Admin delete user:", error);
-
-      return res.status(500).json({
-        error: error.message ||
-          "Gagal menghapus akun. Periksa relasi data pengguna di database."
-      });
-    }
+    const { error } = await req.admin.auth.admin.deleteUser(targetId);
+    if (error) throw error;
+    return res.json({ success: true, deletedUserId: targetId });
+  } catch (error) {
+    console.error("Admin delete user:", error);
+    return res.status(500).json({ error: error.message || "Gagal menghapus akun. Periksa relasi data pengguna di database." });
   }
-);
+});
 
 // =====================================
 // HOME / HEALTH
@@ -1056,9 +935,9 @@ app.post(
         throw new Error(
           "Socket WhatsApp berubah. Silakan coba hubungkan ulang."
         );
-      }
+          }
 
-      if (sock.user) {
+                        if (sock.user) {
         throw new Error("WhatsApp sudah terhubung.");
       }
 
@@ -1101,8 +980,7 @@ app.post(
         status: "waiting_pairing",
         phoneNumber,
         pairingCode: String(pairingCode),
-        pairingCreatedAt:
-          liveState.get(userId)?.pairingCreatedAt || Date.now()
+        pairingCreatedAt: liveState.get(userId)?.pairingCreatedAt || Date.now()
       };
     })();
 
@@ -1120,18 +998,11 @@ app.post(
 
       // Bersihkan socket pairing yang gagal agar permintaan berikutnya
       // membuat koneksi baru dan tidak memakai state pairing yang kedaluwarsa.
-      if (
-        pairingSocket &&
-        sockets.get(userId) === pairingSocket &&
-        !pairingSocket.user
-      ) {
+      if (pairingSocket && sockets.get(userId) === pairingSocket && !pairingSocket.user) {
         sockets.delete(userId);
         socketModes.delete(userId);
         pairingReady.delete(userId);
-
-        try {
-          pairingSocket.end(undefined);
-        } catch {}
+        try { pairingSocket.end(undefined); } catch {}
 
         liveState.set(userId, {
           status: "disconnected",
@@ -1144,8 +1015,7 @@ app.post(
       }
 
       return res.status(500).json({
-        error: error.message ||
-          "Gagal membuat Pairing Code. Silakan minta kode baru."
+        error: error.message || "Gagal membuat Pairing Code. Silakan minta kode baru."
       });
     } finally {
       pairingLocks.delete(userId);
