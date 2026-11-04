@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1813,6 +1814,18 @@ async function loadCampaigns() {
  const box = $("campaignList");
  box.textContent = "Memuat...";
 
+ // Status diperiksa setiap kali daftar campaign dibuka. Jika server gagal
+ // diverifikasi, sistem menutup akses ambil job (fail closed).
+ let canTakeJobs = false;
+ try {
+  const wa = await waRequest("/whatsapp/status");
+  renderWaResult(wa);
+  canTakeJobs = wa.status === "connected";
+ } catch (error) {
+  whatsappConnected = false;
+  console.warn("Verifikasi WhatsApp untuk campaign:", error.message);
+ }
+
  const {data, error} = await db.from("campaigns")
   .select("*")
   .eq("status", "active")
@@ -1844,10 +1857,24 @@ async function loadCampaigns() {
   pay.textContent = "Bayaran: " + rupiah(campaign.payout_per_delivery);
 
   const button = document.createElement("button");
-  button.textContent = "AMBIL JOB";
+  button.textContent = canTakeJobs ? "AMBIL JOB" : "AMBIL JOB — TERKUNCI";
+  button.disabled = !canTakeJobs;
+  button.title = canTakeJobs
+   ? "WhatsApp sudah terhubung."
+   : "Tautkan WhatsApp terlebih dahulu untuk mengambil pekerjaan.";
   button.onclick = () => applyJob(campaign.id);
 
   card.append(title, description, pay, button);
+
+  if (!canTakeJobs) {
+   const linkButton = document.createElement("button");
+   linkButton.type = "button";
+   linkButton.className = "secondary";
+   linkButton.textContent = "TAUTKAN WHATSAPP SEKARANG";
+   linkButton.onclick = () => showTab("whatsapp");
+   card.append(linkButton);
+  }
+
   box.append(card);
  });
 }
@@ -1880,22 +1907,23 @@ async function applyJob(id) {
   return;
  }
 
- const {error} = await db.from("applications").insert({
-  campaign_id:id,
-  worker_id:user.id
- });
-
- if (error) {
-  notify(
-   error.code === "23505"
-    ? "Kamu sudah mengambil job ini."
-    : error.message
-  );
-
- } else {
+ try {
+  // Pembuatan aplikasi job diproses server. Server memeriksa socket WhatsApp
+  // aktif dan status database, sehingga tidak bisa dilewati dari browser.
+  await waRequest("/applications", "POST", { campaignId:id });
   notify("Permintaan job berhasil. Tunggu persetujuan pemilik campaign.");
-  loadCampaigns();
-  loadJobs();
+  await Promise.all([loadCampaigns(), loadJobs()]);
+ } catch (error) {
+  const message = error.message || "Gagal mengambil pekerjaan.";
+  if (/WhatsApp|terhubung|tautkan/i.test(message)) {
+   whatsappConnected = false;
+   notify(message);
+   showTab("whatsapp");
+  } else if (/sudah mengambil|duplicate|duplicate key/i.test(message)) {
+   notify("Kamu sudah mengambil job ini.");
+  } else {
+   notify(message);
+  }
  }
 }
 
