@@ -684,6 +684,10 @@ const $ = id => document.getElementById(id);
 
 let notifyTimeout = null;
 let waSuccessToastTimeout = null;
+let waQrWaitTimer = null;
+function clearWaQrWaitTimer() {
+ if (waQrWaitTimer) { clearTimeout(waQrWaitTimer); waQrWaitTimer = null; }
+}
 function showWaSuccessToast() {
  const toast = $("waSuccessToast");
  if (!toast) return;
@@ -1178,6 +1182,7 @@ function renderWaResult(result) {
 
  if (result.qr && typeof result.qr === "string" &&
      result.qr.startsWith("data:image/")) {
+  clearWaQrWaitTimer();
   const image = $("waQrImage");
 
   if (image.src !== result.qr) {
@@ -1212,6 +1217,7 @@ function renderWaResult(result) {
  }
 
  if (result.status === "connected") {
+  clearWaQrWaitTimer();
   $("waQrArea").classList.add("hidden");
   $("waPairCodeArea").classList.add("hidden");
  }
@@ -1237,6 +1243,16 @@ async function connectWhatsApp() {
  $("waQrArea").classList.remove("hidden");
  $("waQrArea").querySelector("small").textContent =
   "Menghubungkan ke WhatsApp dan menyiapkan QR Code...";
+ clearWaQrWaitTimer();
+ waQrWaitTimer = setTimeout(() => {
+  waQrWaitTimer = null;
+  const qrImage = $("waQrImage");
+  if (qrImage && qrImage.classList.contains("hidden") && !whatsappConnected) {
+   $("waQrArea").classList.remove("hidden");
+   $("waQrArea").querySelector("small").textContent =
+    "QR belum diterima dari server. Jika akun ini pernah ditautkan sebelumnya, tekan BATALKAN TAUTAN untuk menghapus sesi lama akun ini, lalu pilih BUAT QR CODE kembali.";
+  }
+ }, 15000);
 
  $("waPairCodeArea").classList.add("hidden");
  showWaMethod("qr");
@@ -1418,6 +1434,7 @@ async function copyPairingCode() {
 // =========================
 
 async function disconnectWhatsApp() {
+ clearWaQrWaitTimer();
  if (waDisconnecting) return;
 
  const wasConnected = whatsappConnected;
@@ -1848,7 +1865,16 @@ $("authForm").onsubmit = async event => {
 
  } catch (error) {
   console.error("Login/Register:", error);
-  notify("Gagal " + (mode === "signup" ? "mendaftar" : "login") + ": " + (error.message || "Terjadi kesalahan."));
+  const authMessage = String(error.message || "");
+  if (mode === "login" && /invalid login credentials|invalid_credentials|user not found/i.test(authMessage)) {
+   notify("Email belum terdaftar atau password salah. Periksa kembali email dan password, atau buat akun baru.", 4000);
+  } else if (mode === "login" && /email not confirmed/i.test(authMessage)) {
+   notify("Email belum diverifikasi. Silakan selesaikan verifikasi email terlebih dahulu.", 4000);
+  } else if (mode === "signup" && /already registered|user already exists/i.test(authMessage)) {
+   notify("Email ini sudah terdaftar. Silakan masuk melalui menu LOGIN.", 4000);
+  } else {
+   notify("Gagal " + (mode === "signup" ? "mendaftar" : "login") + ": " + (authMessage || "Terjadi kesalahan."), 4000);
+  }
  } finally {
   submitButton.disabled = false;
   submitButton.textContent = mode === "signup" ? "BUAT AKUN" : "LOGIN";
