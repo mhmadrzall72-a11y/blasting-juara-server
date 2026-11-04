@@ -1801,8 +1801,8 @@ async function openDashboard() {
   "Selamat datang, " +
   (user.user_metadata?.full_name || user.email || "");
 
- // Tampilkan menu utama terlebih dahulu; data tambahan dimuat di latar belakang.
- showTab("campaigns");
+ // Setelah login berhasil, selalu buka halaman Home terlebih dahulu.
+ goHome();
  loadWallet(false);
  loadJobs();
  loadWhatsAppStatus();
