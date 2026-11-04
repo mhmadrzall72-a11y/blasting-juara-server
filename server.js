@@ -547,38 +547,54 @@ async function startWhatsApp(userId, admin, mode = "qr") {
         });
     });
 
-    sock.ev.on("messages.update", async updates => {
-      try {
-        for (const item of updates || []) {
-          const messageId = item?.key?.id;
-          const ackStatus = Number(item?.update?.status || 0);
+    
+sock.ev.on("messages.update", async updates => {
+  try {
+    for (const item of updates || []) {
+      const messageId = item?.key?.id;
+      const ackStatus = Number(item?.update?.status || 0);
 
-          if (!messageId || ackStatus < 3) continue;
+      console.log("CAMPAIGN ACK:", {
+        messageId,
+        ackStatus,
+        workerId: userId
+      });
 
-          const { data, error } = await admin
-            .from("campaign_delivery_queue")
-            .update({
-              status: "delivered",
-              delivered_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .eq("message_id", messageId)
-            .eq("worker_id", userId)
-            .in("status", ["sending", "sent", "delivered"])
-            .select("id");
+      if (!messageId || ackStatus < 3) continue;
 
-          if (error) {
-            console.error("Simpan delivery receipt:", error.message);
-          }
+      const deliveredAt = new Date().toISOString();
 
-          if (!error && !data?.length && campaignDeliveryRuns.has(userId)) {
-            pendingDeliveryAcks.add(messageId);
-          }
-        }
-      } catch (error) {
-        console.error("Proses delivery receipt:", error.message);
+      const { data, error } = await admin
+        .from("campaign_delivery_queue")
+        .update({
+          status: "delivered",
+          delivered_at: deliveredAt,
+          updated_at: deliveredAt
+        })
+        .eq("message_id", messageId)
+        .eq("worker_id", userId)
+        .in("status", ["sending", "sent", "delivered"])
+        .select("id");
+
+      if (error) {
+        console.error("SIMPAN DELIVERY RECEIPT GAGAL:", error.message);
+        continue;
       }
-    });
+
+      if (data?.length) {
+        console.log("DELIVERY RECEIPT TERSIMPAN:", messageId);
+      } else if (campaignDeliveryRuns.has(userId)) {
+        pendingDeliveryAcks.add(messageId);
+        console.log("DELIVERY ACK MENUNGGU DATA ANTREAN:", messageId);
+      } else {
+        console.log("DELIVERY ACK TIDAK MENEMUKAN ANTREAN:", messageId);
+      }
+    }
+  } catch (error) {
+    console.error("PROSES DELIVERY RECEIPT:", error.message);
+  }
+});
+
 
     sock.ev.on("connection.update", async update => {
       if (sockets.get(userId) !== sock) return;
