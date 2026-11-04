@@ -923,18 +923,32 @@ app.post("/applications", requireUser, async (req, res) => {
 
     const { data: existing, error: existingError } = await req.admin
       .from("applications")
-      .select("id")
+      .select("id,status")
       .eq("campaign_id", campaignId)
       .eq("worker_id", userId)
       .maybeSingle();
     if (existingError) throw existingError;
     if (existing) {
-      return res.status(409).json({ error: "Kamu sudah mengambil job ini." });
+      if (existing.status === "rejected") {
+        return res.status(403).json({ error: "Pengambilan job ini pernah ditolak dan perlu bantuan admin." });
+      }
+      if (existing.status === "pending") {
+        const { data: activated, error: activateError } = await req.admin
+          .from("applications")
+          .update({ status: "approved" })
+          .eq("id", existing.id)
+          .eq("worker_id", userId)
+          .select("id,status,created_at")
+          .single();
+        if (activateError) throw activateError;
+        return res.json({ success: true, application: activated, message: "Job langsung aktif tanpa menunggu persetujuan admin." });
+      }
+      return res.json({ success: true, application: existing, message: "Job ini sudah ada di daftar pekerjaan kamu." });
     }
 
     const { data: application, error: insertError } = await req.admin
       .from("applications")
-      .insert({ campaign_id: campaignId, worker_id: userId })
+      .insert({ campaign_id: campaignId, worker_id: userId, status: "approved" })
       .select("id,status,created_at")
       .single();
     if (insertError) {
@@ -1021,11 +1035,11 @@ app.post("/campaign-delivery/start", requireUser, async (req, res) => {
       .select("id,status,campaign_id,campaigns(status,message_template)")
       .eq("id", applicationId).eq("worker_id", userId).maybeSingle();
     if (error) throw error;
-    if (!application || application.status !== "approved" || application.campaigns?.status !== "active") return res.status(403).json({ error: "Job belum disetujui atau campaign tidak aktif." });
+    if (!application || application.status === "rejected" || application.campaigns?.status !== "active") return res.status(403).json({ error: "Job tidak tersedia atau campaign tidak aktif." });
     if (!String(application.campaigns?.message_template || "").trim()) return res.status(400).json({ error: "Pemasang iklan belum mengisi template pesan." });
     const task = runCampaignDelivery(userId, applicationId, req.admin);
     campaignDeliveryRuns.set(userId, { applicationId, startedAt: new Date().toISOString(), task });
-    return res.status(202).json({ success: true, message: "Antrean dimulai. Maksimal 10 pesan per sesi dengan jeda 30 detik." });
+    return res.status(202).json({ success: true, message: "Pengiriman langsung dimulai. Sistem membagi penerima secara otomatis; batas aman 10 pesan per sesi dengan jeda 30 detik." });
   } catch (error) { console.error("Mulai campaign delivery:", error); return res.status(500).json({ error: error.message || "Gagal memulai antrean." }); }
 });
 
@@ -1058,7 +1072,7 @@ app.post("/campaign-delivery/submit-report", requireUser, async (req, res) => {
     const { data: application, error: appError } = await req.admin.from("applications").select("id,status")
       .eq("id", applicationId).eq("worker_id", req.user.id).maybeSingle();
     if (appError) throw appError;
-    if (!application || application.status !== "approved") return res.status(403).json({ error: "Job belum disetujui." });
+    if (!application || application.status === "rejected") return res.status(403).json({ error: "Job tidak tersedia untuk laporan." });
     const { data: existingReports, error: existingError } = await req.admin.from("reports")
       .select("id,status").eq("application_id", applicationId);
     if (existingError) throw existingError;
