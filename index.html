@@ -479,7 +479,7 @@ body.auth-mode #message{position:fixed!important;top:10px!important;bottom:auto!
    <textarea id="cDesc" required></textarea>
 
    <label>Contoh pesan promosi</label>
-   <textarea id="cMessage"></textarea>
+   <textarea id="cMessage" required maxlength="4000" placeholder="Tulis pesan yang akan dikirim kepada penerima yang menyetujui campaign..."></textarea>
 
    <label>Bayaran per hasil terverifikasi (Rp)</label>
    <input id="cPay" type="number" min="1" required>
@@ -1935,96 +1935,77 @@ async function applyJob(id) {
 
 async function loadJobs() {
  if (!user) return;
-
  const box = $("jobList");
-
  const {data, error} = await db.from("applications")
-  .select("id,status,created_at,campaigns(title,description,payout_per_delivery)")
+  .select("id,status,created_at,campaigns(title,description,payout_per_delivery,status,message_template)")
   .eq("worker_id", user.id)
   .order("created_at", {ascending:false});
-
- if (error) {
-  box.textContent = error.message;
-  return;
- }
-
+ if (error) { box.textContent = error.message; return; }
  box.innerHTML = "";
  $("jobCount").textContent = data.length;
-
- if (!data.length) {
-  box.textContent = "Belum ada job.";
-  return;
- }
-
+ if (!data.length) { box.textContent = "Belum ada job."; return; }
  for (const application of data) {
   const campaign = application.campaigns || {};
-
-  const card = document.createElement("div");
-  card.className = "card";
-
-  const heading = document.createElement("h3");
-  heading.textContent = campaign.title || "Campaign";
-
-  const description = document.createElement("p");
-  description.textContent = campaign.description || "";
-
-  const status = document.createElement("p");
-  status.textContent = "Status: " + application.status;
-
-  card.append(heading, description, status);
-
+  const card = document.createElement("div"); card.className = "card";
+  const heading = document.createElement("h3"); heading.textContent = campaign.title || "Campaign";
+  const description = document.createElement("p"); description.textContent = campaign.description || "";
+  const status = document.createElement("p"); status.textContent = "Status pekerjaan: " + application.status;
+  const pay = document.createElement("p"); pay.textContent = "Bayaran per hasil terverifikasi: " + rupiah(campaign.payout_per_delivery || 0);
+  card.append(heading, description, status, pay);
   if (application.status === "approved") {
-   const delayWrap = document.createElement("div");
-   delayWrap.className = "card";
-   const delayLabel = document.createElement("label");
-   delayLabel.textContent = "Pilihan jeda antar-pesan";
-   const delaySelect = document.createElement("select");
-   delaySelect.innerHTML = '<option value="1">1 detik</option><option value="5" selected>5 detik</option><option value="15">15 detik</option><option value="30">30 detik</option><option value="60">60 detik</option>';
-   delaySelect.setAttribute("aria-label", "Pilih jeda antar-pesan");
-   const delayNote = document.createElement("small");
-   delayNote.textContent = "Pilihan jeda disediakan di sini. Pengiriman otomatis belum diaktifkan sampai integrasi WhatsApp Business Platform resmi dikonfigurasi.";
-   delayWrap.append(delayLabel, delaySelect, delayNote);
-   card.append(delayWrap);
-
-   const form = document.createElement("form");
-
-   form.innerHTML = `
-    <label>Jumlah pesan terkirim kepada penerima yang setuju</label>
-    <input type="number" min="1" required>
-    <label>Link bukti (opsional)</label>
-    <input type="url">
-    <label>Catatan</label>
-    <textarea></textarea>
-    <button type="submit">Kirim laporan</button>
-   `;
-
-   form.onsubmit = async event => {
-    event.preventDefault();
-
-    const values = form.querySelectorAll("input,textarea");
-
-    const {error} = await db.from("reports").insert({
-     application_id:application.id,
-     worker_id:user.id,
-     delivered_count:Number(values[0].value),
-     evidence_url:values[1].value,
-     notes:values[2].value
-    });
-
-    if (error) {
-     notify(error.message);
-
-    } else {
-     notify("Laporan berhasil dikirim untuk diperiksa.");
-     form.reset();
-    }
-   };
-
-   card.append(form);
+   const info = document.createElement("p");
+   info.textContent = "Pengiriman menggunakan WhatsApp milik kamu. Hanya nomor yang menyetujui pesan promosi yang masuk antrean. Maksimal 10 pesan per sesi, dengan jeda 30 detik.";
+   const controls = document.createElement("div"); controls.className = "card";
+   const statusBox = document.createElement("p"); statusBox.id = "deliveryStatus-" + application.id; statusBox.textContent = "Status antrean belum dimuat.";
+   const startBtn = document.createElement("button"); startBtn.type = "button"; startBtn.textContent = "MULAI KIRIM PESAN";
+   startBtn.onclick = () => startCampaignDelivery(application.id);
+   const stopBtn = document.createElement("button"); stopBtn.type = "button"; stopBtn.className = "danger"; stopBtn.textContent = "HENTIKAN PENGIRIMAN";
+   stopBtn.onclick = () => stopCampaignDelivery(application.id);
+   const refreshBtn = document.createElement("button"); refreshBtn.type = "button"; refreshBtn.className = "secondary"; refreshBtn.textContent = "PERBARUI STATUS";
+   refreshBtn.onclick = () => refreshCampaignDeliveryStatus(application.id);
+   const reportBtn = document.createElement("button"); reportBtn.type = "button"; reportBtn.textContent = "KIRIM LAPORAN HASIL TERVERIFIKASI";
+   reportBtn.onclick = () => submitCampaignDeliveryReport(application.id);
+   controls.append(info, statusBox, startBtn, stopBtn, refreshBtn, reportBtn);
+   card.append(controls);
+   refreshCampaignDeliveryStatus(application.id);
   }
-
   box.append(card);
  }
+}
+
+async function refreshCampaignDeliveryStatus(applicationId) {
+ const el = $("deliveryStatus-" + applicationId);
+ if (!el) return;
+ try {
+  const result = await waRequest("/campaign-delivery/status?applicationId=" + encodeURIComponent(applicationId));
+  const c = result.counts || {};
+  el.textContent = `Antrean: ${c.sending||0} diproses · ${c.sent||0} diterima server WhatsApp · ${c.delivered||0} terkirim ke perangkat penerima · ${c.failed||0} gagal. ` + (result.running ? "Pengiriman sedang berjalan." : "Pengiriman tidak sedang berjalan.");
+ } catch (error) { el.textContent = "Status antrean: " + error.message; }
+}
+
+async function startCampaignDelivery(applicationId) {
+ try {
+  const result = await waRequest("/campaign-delivery/start", "POST", { applicationId });
+  notify(result.message || "Antrean pengiriman dimulai.");
+  await refreshCampaignDeliveryStatus(applicationId);
+ } catch (error) { notify(error.message); }
+}
+
+async function stopCampaignDelivery(applicationId) {
+ try {
+  await waRequest("/campaign-delivery/stop", "POST", { applicationId });
+  notify("Permintaan penghentian dikirim. Pesan yang sedang diproses akan diselesaikan terlebih dahulu.");
+  await refreshCampaignDeliveryStatus(applicationId);
+ } catch (error) { notify(error.message); }
+}
+
+async function submitCampaignDeliveryReport(applicationId) {
+ if (!confirm("Kirim laporan berdasarkan jumlah delivery receipt WhatsApp yang sudah tercatat?")) return;
+ try {
+  const result = await waRequest("/campaign-delivery/submit-report", "POST", { applicationId });
+  notify("Laporan terverifikasi berhasil dikirim. Jumlah: " + result.report.delivered_count + " pesan.");
+  await loadJobs();
+ } catch (error) { notify(error.message); }
 }
 
 // =========================
