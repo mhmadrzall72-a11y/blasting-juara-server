@@ -1019,6 +1019,37 @@ const CAMPAIGN_SEND_BATCH_LIMIT = 10;
 const CAMPAIGN_SEND_DELAY_MS = 30000;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+// Pembayaran idempoten: RPC database memastikan satu queue_id hanya dibayar sekali.
+async function creditCampaignQueuePayout(admin, queueId, workerId) {
+  const { data, error } = await admin.rpc("credit_campaign_sent_payout", {
+    p_queue_id: queueId,
+    p_worker_id: workerId
+  });
+  if (error) {
+    console.error("Pembayaran campaign tertunda:", queueId, error.message);
+    return null;
+  }
+  if (data?.paid) {
+    console.log("Campaign payout credited:", queueId, data.amount);
+  } else if (data?.already_paid) {
+    console.log("Campaign payout already credited:", queueId);
+  }
+  return data;
+}
+
+async function reconcileCampaignPayouts(admin, applicationId, workerId) {
+  const { data: rows, error } = await admin
+    .from("campaign_delivery_queue")
+    .select("id")
+    .eq("application_id", applicationId)
+    .eq("worker_id", workerId)
+    .in("status", ["sent", "delivered"]);
+  if (error) throw error;
+  for (const row of rows || []) {
+    await creditCampaignQueuePayout(admin, row.id, workerId);
+  }
+}
+
 async function runCampaignDelivery(userId, applicationId, admin) {
   let attemptedThisRun = 0;
   try {
@@ -1060,6 +1091,9 @@ async function runCampaignDelivery(userId, applicationId, admin) {
             .update({ status: "sent" }).eq("id", job.recipient_id);
           if (recipientError) console.error("Pembaruan status penerima:", recipientError.message);
         }
+        // Status sent sudah tersimpan. Kredit saldo sekarang; kegagalan RPC tidak
+        // mengubah pesan menjadi failed karena pesan sudah diterima WhatsApp.
+        await creditCampaignQueuePayout(admin, job.queue_id, userId);
         console.log("Campaign message accepted by WhatsApp:", job.queue_id, messageId);
       } catch (sendError) {
         const now = new Date().toISOString();
@@ -1109,14 +1143,32 @@ app.get("/campaign-delivery/status", requireUser, async (req, res) => {
       .eq("id", applicationId).eq("worker_id", req.user.id).maybeSingle();
     if (appError) throw appError;
     if (!application) return res.status(404).json({ error: "Job tidak ditemukan." });
-    const { data, error } = await req.admin.from("campaign_delivery_queue").select("status")
+
+    // Retry pembayaran untuk pesan sent lama jika proses sebelumnya sempat gagal.
+    await reconcileCampaignPayouts(req.admin, applicationId, req.user.id);
+
+    const { data, error } = await req.admin.from("campaign_delivery_queue").select("id,status")
       .eq("application_id", applicationId).eq("worker_id", req.user.id);
     if (error) throw error;
     const counts = { sending: 0, sent: 0, delivered: 0, failed: 0 };
     for (const row of data || []) if (counts[row.status] !== undefined) counts[row.status]++;
+
+    const queueIds = (data || []).map(row => row.id);
+    let payouts = [];
+    if (queueIds.length) {
+      const { data: payoutRows, error: payoutError } = await req.admin.from("campaign_payouts")
+        .select("amount").eq("worker_id", req.user.id).in("queue_id", queueIds);
+      if (payoutError) throw payoutError;
+      payouts = payoutRows || [];
+    }
+    const paidCount = (payouts || []).length;
+    const paidAmount = (payouts || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const run = campaignDeliveryRuns.get(req.user.id);
-    return res.json({ success: true, running: Boolean(run && run.applicationId === applicationId), counts });
-  } catch (error) { return res.status(500).json({ error: error.message || "Gagal membaca status antrean." }); }
+    return res.json({ success: true, running: Boolean(run && run.applicationId === applicationId), counts, paidCount, paidAmount });
+  } catch (error) {
+    console.error("Status campaign delivery:", error.message);
+    return res.status(500).json({ error: error.message || "Gagal membaca status antrean." });
+  }
 });
 
 app.post("/campaign-delivery/submit-report", requireUser, async (req, res) => {
