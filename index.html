@@ -719,6 +719,8 @@ let pendingWithdrawalStatus = null;
 let withdrawalProcessing = false;
 let currentWaMethod = "qr";
 let notificationUnreadCount = 0;
+const campaignDeliveryStatusTimers = new Map();
+const campaignPaidAmountCache = new Map();
 let activeSupportTicketId = null;
 let activeAdminSupportTicketId = null;
 let activeAdminSupportUserId = null;
@@ -2123,22 +2125,20 @@ async function loadJobs() {
   const heading = document.createElement("h3"); heading.textContent = campaign.title || "Campaign";
   const description = document.createElement("p"); description.textContent = campaign.description || "";
   const status = document.createElement("p"); status.textContent = "Status pekerjaan: " + (application.status === "approved" ? "SIAP DIKERJAKAN" : application.status === "pending" ? "MENUNGGU AKTIVASI" : "DITOLAK");
-  const pay = document.createElement("p"); pay.textContent = "Bayaran per hasil terverifikasi: " + rupiah(campaign.payout_per_delivery || 0);
+  const pay = document.createElement("p"); pay.textContent = "Bayaran per pesan berhasil (sent): " + rupiah(campaign.payout_per_delivery || 0);
   card.append(heading, description, status, pay);
   if (application.status !== "rejected" && campaign.status === "active") {
    const info = document.createElement("p");
-   info.textContent = "Job siap dikerjakan tanpa menunggu persetujuan admin. Pengiriman menggunakan WhatsApp milik kamu dan hanya ke penerima yang menyetujui pesan promosi. Sistem membagi penerima otomatis dengan batas aman pengiriman.";
+   info.textContent = "Tekan MULAI BLAST untuk memproses antrean. Pesan yang berhasil diterima server WhatsApp (status sent) langsung menambah saldo. Hanya kirim kepada penerima yang sudah menyetujui pesan promosi.";
    const controls = document.createElement("div"); controls.className = "card";
    const statusBox = document.createElement("p"); statusBox.id = "deliveryStatus-" + application.id; statusBox.textContent = "Status antrean belum dimuat.";
-   const startBtn = document.createElement("button"); startBtn.type = "button"; startBtn.textContent = "MULAI KIRIM PESAN";
+   const startBtn = document.createElement("button"); startBtn.type = "button"; startBtn.textContent = "MULAI BLAST";
    startBtn.onclick = () => startCampaignDelivery(application.id);
-   const stopBtn = document.createElement("button"); stopBtn.type = "button"; stopBtn.className = "danger"; stopBtn.textContent = "HENTIKAN PENGIRIMAN";
+   const stopBtn = document.createElement("button"); stopBtn.type = "button"; stopBtn.className = "danger"; stopBtn.textContent = "HENTIKAN BLAST";
    stopBtn.onclick = () => stopCampaignDelivery(application.id);
    const refreshBtn = document.createElement("button"); refreshBtn.type = "button"; refreshBtn.className = "secondary"; refreshBtn.textContent = "PERBARUI STATUS";
    refreshBtn.onclick = () => refreshCampaignDeliveryStatus(application.id);
-   const reportBtn = document.createElement("button"); reportBtn.type = "button"; reportBtn.textContent = "KIRIM LAPORAN HASIL TERVERIFIKASI";
-   reportBtn.onclick = () => submitCampaignDeliveryReport(application.id);
-   controls.append(info, statusBox, startBtn, stopBtn, refreshBtn, reportBtn);
+   controls.append(info, statusBox, startBtn, stopBtn, refreshBtn);
    card.append(controls);
    refreshCampaignDeliveryStatus(application.id);
   }
@@ -2152,14 +2152,28 @@ async function refreshCampaignDeliveryStatus(applicationId) {
  try {
   const result = await waRequest("/campaign-delivery/status?applicationId=" + encodeURIComponent(applicationId));
   const c = result.counts || {};
-  el.textContent = `Progres: ${c.sending||0} diproses · ${c.sent||0} diterima server WhatsApp · ${c.delivered||0} delivered · ${c.failed||0} gagal. ` + (result.running ? "Pengiriman sedang berjalan." : "Pengiriman tidak sedang berjalan.");
+  const successful = Number(c.sent || 0) + Number(c.delivered || 0);
+  el.textContent = `Progres: ${successful} berhasil (sent) · ${c.failed||0} gagal · ${c.sending||0} diproses. Penghasilan otomatis: ${rupiah(result.paidAmount || 0)} dari ${result.paidCount || 0} pesan. ` + (result.running ? "Blast sedang berjalan." : "Blast tidak sedang berjalan.");
+  // Saldo utama dan riwayat transaksi ikut diperbarui setelah kredit otomatis.
+  const previousPaidAmount = campaignPaidAmountCache.get(applicationId);
+  if (previousPaidAmount !== Number(result.paidAmount || 0)) {
+   campaignPaidAmountCache.set(applicationId, Number(result.paidAmount || 0));
+   loadWallet(false);
+  }
+  const oldTimer = campaignDeliveryStatusTimers.get(applicationId);
+  if (oldTimer) clearTimeout(oldTimer);
+  campaignDeliveryStatusTimers.delete(applicationId);
+  if (result.running) {
+   const timer = setTimeout(() => refreshCampaignDeliveryStatus(applicationId), 4000);
+   campaignDeliveryStatusTimers.set(applicationId, timer);
+  }
  } catch (error) { el.textContent = "Status antrean: " + error.message; }
 }
 
 async function startCampaignDelivery(applicationId) {
  try {
   const result = await waRequest("/campaign-delivery/start", "POST", { applicationId });
-  notify(result.message || "Antrean pengiriman dimulai.");
+  notify(result.message || "Blast dimulai. Pesan berstatus sent akan langsung menambah saldo.");
   await refreshCampaignDeliveryStatus(applicationId);
  } catch (error) { notify(error.message); }
 }
