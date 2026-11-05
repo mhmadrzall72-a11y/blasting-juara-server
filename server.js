@@ -261,7 +261,8 @@ async function createDatabaseAuthState(admin, userId) {
 
           if (error) throw error;
         }
-                      if (upserts.length) {
+
+        if (upserts.length) {
           const { error } = await admin
             .from("whatsapp_auth_keys")
             .upsert(upserts, {
@@ -420,6 +421,8 @@ function waitForPairingReady(userId, sock, timeoutMs = 60000) {
       done(new Error("Koneksi WhatsApp sudah terputus."));
     }
   });
+
+	
 }
 
 // =====================================
@@ -609,8 +612,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
       if (sockets.get(userId) !== sock) return;
 
       if (update.qr) {
-
-                    const previous = liveState.get(userId);
+        const previous = liveState.get(userId);
 
         if (mode === "pairing") {
           // Event QR hanya dipakai sebagai tanda socket siap; QR tidak
@@ -715,6 +717,19 @@ async function startWhatsApp(userId, admin, mode = "qr") {
           shouldRestartPairing ? "connecting" : "disconnected"
         );
 
+        // Pekerjaan yang belum dimulai tidak lagi ditampilkan sebagai job aktif
+        // setelah sesi WhatsApp terputus. Riwayat aplikasi dan antrean tetap disimpan.
+        if (!shouldRestartPairing) {
+          const { error: applicationStateError } = await admin
+            .from("applications")
+            .update({ status: "wa_disconnected" })
+            .eq("worker_id", userId)
+            .eq("status", "approved");
+          if (applicationStateError) {
+            console.error("Gagal memperbarui status job setelah WhatsApp terputus:", applicationStateError.message);
+          }
+        }
+
         console.error(
           "WhatsApp terputus:",
           userId,
@@ -784,6 +799,7 @@ async function startWhatsApp(userId, admin, mode = "qr") {
 // =====================================
 // ADMIN: KELOLA AKUN PENGGUNA
 // =====================================
+
 app.get("/admin/users", requireUser, requireAdmin, async (req, res) => {
   try {
     const perPage = 1000;
@@ -1122,11 +1138,25 @@ app.post("/campaign-delivery/start", requireUser, async (req, res) => {
       .select("id,status,campaign_id,campaigns(status,message_template)")
       .eq("id", applicationId).eq("worker_id", userId).maybeSingle();
     if (error) throw error;
-    if (!application || application.status === "rejected" || application.campaigns?.status !== "active") return res.status(403).json({ error: "Job tidak tersedia atau campaign tidak aktif." });
+    if (!application || application.status !== "approved" || application.campaigns?.status !== "active") return res.status(403).json({ error: "Job tidak tersedia, sudah dimulai, atau campaign tidak aktif." });
     if (!String(application.campaigns?.message_template || "").trim()) return res.status(400).json({ error: "Pemasang iklan belum mengisi template pesan." });
+
+    // Tandai pekerjaan sebagai sudah dimulai agar langsung hilang dari Job Saya.
+    // Baris aplikasi dan seluruh riwayat antrean/pembayaran tetap dipertahankan.
+    const { data: startedApplication, error: startStateError } = await req.admin
+      .from("applications")
+      .update({ status: "started" })
+      .eq("id", applicationId)
+      .eq("worker_id", userId)
+      .eq("status", "approved")
+      .select("id")
+      .maybeSingle();
+    if (startStateError) throw startStateError;
+    if (!startedApplication) return res.status(409).json({ error: "Pekerjaan ini sudah dimulai atau tidak lagi tersedia." });
+
     const task = runCampaignDelivery(userId, applicationId, req.admin);
     campaignDeliveryRuns.set(userId, { applicationId, startedAt: new Date().toISOString(), task });
-    return res.status(202).json({ success: true, message: "Pengiriman langsung dimulai. Sistem membagi penerima secara otomatis; batas aman 10 pesan per sesi dengan jeda 30 detik." });
+    return res.status(202).json({ success: true, message: "Blast dimulai. Campaign ini dipindahkan dari Job Saya; riwayat dan pembayaran tetap tersimpan." });
   } catch (error) { console.error("Mulai campaign delivery:", error); return res.status(500).json({ error: error.message || "Gagal memulai antrean." }); }
 });
 
@@ -1294,9 +1324,9 @@ app.post(
         throw new Error(
           "Socket WhatsApp berubah. Silakan coba hubungkan ulang."
         );
-          }
+      }
 
-                        if (sock.user) {
+      if (sock.user) {
         throw new Error("WhatsApp sudah terhubung.");
       }
 
