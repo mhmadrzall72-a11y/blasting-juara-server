@@ -2091,6 +2091,7 @@ async function loadJobs() {
  const {data, error} = await db.from("applications")
   .select("id,status,created_at,campaigns(title,description,payout_per_delivery,status,message_template)")
   .eq("worker_id", user.id)
+  .in("status", ["approved", "pending"])
   .order("created_at", {ascending:false});
  if (error) { box.textContent = error.message; return; }
  box.innerHTML = "";
@@ -2171,10 +2172,11 @@ async function refreshCampaignDeliveryStatus(applicationId) {
 }
 
 async function startCampaignDelivery(applicationId) {
+ if (!confirm("Mulai blast sekarang? Setelah dimulai, campaign ini akan hilang dari Job Saya dan tidak bisa dimulai ulang dari daftar tersebut.")) return;
  try {
   const result = await waRequest("/campaign-delivery/start", "POST", { applicationId });
-  notify(result.message || "Blast dimulai. Pesan berstatus sent akan langsung menambah saldo.");
-  await refreshCampaignDeliveryStatus(applicationId);
+  notify(result.message || "Blast dimulai. Campaign dipindahkan dari Job Saya.");
+  await Promise.all([loadJobs(), loadWallet(false)]);
  } catch (error) { notify(error.message); }
 }
 
